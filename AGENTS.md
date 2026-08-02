@@ -16,23 +16,34 @@ Public CLI that gives Factory Droid **named multi-turn companion sessions**.
 
 Requires the **`droid` CLI** on `PATH` (Factory). Companions are `droid exec` sessions with naming, contract, and job tracking layered on top.
 
+## Interface (locked — do not casually reopen)
+
+1. **JSON for verbs/state. Files for paragraphs.**  
+   Control plane = JSON stdout / error JSON stderr.  
+   Content plane = `--message-file`, `--brief`, optional `--response-file`.  
+   Do not use a shared freeform markdown chat file as the API.
+2. **No internal kill timeout** on companion / `droid exec`.
+3. Long work = `send --bg` + `status` / `result` / `result --wait`.
+4. **One in-flight job per name** (mutex). Optional `--idempotency-key`.
+5. Notify = job files + optional local `--on-done` only. **No chat push** into main Droid in v0.1.
+6. `--name` required on spawn. No anonymous UUID-first UX.
+7. Recipes (`discuss` / `jury` / `vision`) are post-v0.1.
+8. Binary name: `companion`. Package/repo: `droid-companion`.
+
 ## State (local, not in git)
 
-Default: `~/.local/share/droid-companion/`
+Default: `~/.local/share/droid-companion/` (or `DROID_COMPANION_HOME`)
 
-- sessions registry
-- background job metadata / result files
+- sessions registry  
+- background job metadata / result files  
 
-Never commit session or job state.
+Never commit session or job state. Prefer atomic writes + lock when implementing.
 
 ## Working in this repo
 
-1. Read `docs/overview.md` + `docs/roadmap.md` before changing product surface.
-2. JSON on stdout for all commands; errors as `{ "error": "…" }` on stderr, non-zero exit.
-3. **No internal timeouts** on companion work. Long work = `--bg` + `status` / `result`.
-4. Do not reintroduce anonymous UUID-first UX; `--name` is required on spawn.
-5. Recipes (`discuss` / `jury` / `vision`) are post-v0.1 unless roadmap says otherwise.
-6. Binary name: `companion`. Package/repo name: `droid-companion`.
+1. Read `docs/overview.md` + `docs/roadmap.md` + `docs/background-jobs.md` before changing product surface.
+2. Track durable work with `bd` only (see below).
+3. Contract is a **thin** specialist relay (`contractVersion: 2`) — not a full autonomy manifesto; role/presets carry work style.
 
 ## Dev commands
 
@@ -48,81 +59,12 @@ bun run build   # when implementing binary release
 - Homebrew formula lives in `kumamaki/homebrew-tap` (see `Formula/README.md`).
 - Do not push remotes from the agent unless the user asks; never force-push.
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:6cd5cc61 -->
-## Beads Issue Tracker
+## Issue tracking
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
-
-### Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
-
-### Rules
-
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
-
-## Agent Context Profiles
-
-The managed Beads block is task-tracking guidance, not permission to override repository, user, or orchestrator instructions.
-
-- **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
-- **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
-- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
-
-## Session Completion
-
-This protocol applies when ending a Beads implementation workflow. It is subordinate to explicit user, repository, and orchestrator instructions.
-
-1. **File issues for remaining work** - Create beads for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **Handle git/sync by active profile**:
-   ```bash
-   # Conservative/minimal/default: report status and proposed commands; wait for approval.
-   git status
-
-   # Team-maintainer opt-in only, unless current instructions forbid it:
-   git pull --rebase
-   git push
-   git status
-   ```
-5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
-
-**Critical rules:**
-- Explicit user or orchestrator instructions override this Beads block.
-- Do not commit or push without clear authority from the active profile or the current user request.
-- If a required sync or push is blocked, stop and report the exact command and error.
-<!-- END BEADS INTEGRATION -->
-
-<!-- BEGIN BEADS CODEX SETUP: generated by bd setup codex -->
-## Beads Issue Tracker
-
-Use Beads (`bd`) for durable task tracking in repositories that include it. Use the `beads` skill at `.agents/skills/beads/SKILL.md` (project install) or `~/.agents/skills/beads/SKILL.md` (global install) for Beads workflow guidance, then use the `bd` CLI for issue operations.
-
-### Quick Reference
-
-```bash
-bd ready                # Find available work
-bd show <id>            # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>           # Complete work
-bd prime                # Refresh Beads context
-```
-
-### Rules
-
-- Use `bd` for all task tracking; do not create markdown TODO lists.
-- Run `bd prime` when Beads context is missing or stale. Codex 0.129.0+ can load Beads context automatically through native hooks; use `/hooks` to inspect or toggle them.
-- Keep persistent project memory in Beads via `bd remember`; do not create ad hoc memory files.
-
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
-<!-- END BEADS CODEX SETUP -->
+- `bd` is the sole tracker for durable work. Do not mirror bead tasks into
+  TodoWrite or markdown checklists.
+- Create before implementation, claim when starting, and close only after
+  verification.
+- Run `bd prime` for the current command reference and workflow details.
+- Never commit `.beads/beads.db`; `.beads/issues.jsonl` and configuration are
+  the portable source of truth.

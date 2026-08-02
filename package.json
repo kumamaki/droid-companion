@@ -1,0 +1,32 @@
+{
+  "name": "droid-companion",
+  "version": "0.1.0-dev",
+  "private": true,
+  "type": "module",
+  "description": "Named multi-turn companion sessions for Factory Droid (CLI)",
+  "author": "kumamaki <kumamaki@proton.me>",
+  "license": "MIT",
+  "bin": {
+    "companion": "./src/companion.ts"
+  },
+  "scripts": {
+    "companion": "bun src/companion.ts",
+    "doctor": "bun src/companion.ts doctor",
+    "build": "bash scripts/build-binary.sh",
+    "typecheck": "bun build --no-bundle src/companion.ts src/lib/*.ts src/commands/*.ts"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kumamaki/droid-companion.git"
+  },
+  "keywords": [
+    "droid",
+    "factory",
+    "cli",
+    "agents",
+    "companion"
+  ]
+}

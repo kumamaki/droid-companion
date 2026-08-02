@@ -1,0 +1,243 @@
+# CLI reference
+
+## Interface (locked)
+
+- **Control plane:** JSON on stdout. Errors: `{ "error": "…" }` (plus structured fields when known) on **stderr**, non-zero exit.
+- **Content plane:** files — `--message-file`, `--brief`, optional `--response-file`.  
+  Rule: **JSON for verbs/state. Files for paragraphs.**
+- **Not supported as API:** a shared freeform markdown chat log as the only protocol.
+
+Binary: `companion`  
+Version: `companion --version` → plain text version string (also in doctor JSON).
+
+## Commands (v0.1 surface)
+
+| Command | Role | Scaffold status |
+|---------|------|-----------------|
+| `spawn` | Create named companion | planned (core port) |
+| `send` | Message existing companion | planned (+ `--bg`) |
+| `list` | Roster + sessions | planned |
+| `close` | Untrack companion (see below) | planned |
+| `doctor` | Environment checks | **implemented (stub)** |
+| `status` | Background job status | planned |
+| `result` | Background job result | planned |
+
+Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadmap.md).
+
+---
+
+## `doctor`
+
+```sh
+companion doctor
+```
+
+Example shape (fields will grow; auth must not false-green):
+
+```json
+{
+  "ok": true,
+  "version": "0.1.0-dev",
+  "checks": {
+    "droidOnPath": true,
+    "droidVersion": "0.186.0",
+    "contractPresent": true,
+    "stateDir": "/Users/you/.local/share/droid-companion",
+    "stateDirWritable": true
+  }
+}
+```
+
+Exit `0` if critical checks pass; `1` if `droid` missing or state dir unusable.  
+`droid --version` alone is **not** proof of login — see roadmap / doctor harden beads.
+
+---
+
+## `spawn` (spec)
+
+```sh
+companion spawn --name NAME [options]
+```
+
+| Flag | Notes |
+|------|--------|
+| `--name NAME` | **Required.** Unique, no whitespace, max 64 |
+| `--model ID` | Model id |
+| `--auto LEVEL` | `low` \| `medium` \| `high`; inferred if omitted |
+| `--cwd PATH` | Working directory (tracked) |
+| `--system-prompt TEXT` | Role on top of contract |
+| `--role TEXT` | Alias for system-prompt / roster role |
+| `--tag NAME` | Session tag (defaults to `--name`) |
+| `--reasoning-effort L` | Passed through to droid |
+| `--brief PATH` | Shared brief file (tracked absolute path) |
+| `--format prose\|findings` | Default reply shape (tracked) |
+| `--lite` | Cheap critique profile |
+| `--no-contract` | Skip contract injection |
+| `--preset NAME` | Planned: `critic` \| `auditor` \| `fixer` \| `advisor` |
+
+Name already in use → actionable error (name, session id / last used if known, suggest `close` or another name).
+
+Example result shape:
+
+```json
+{
+  "sessionId": "…",
+  "name": "audit",
+  "response": "…",
+  "isError": false,
+  "brief": null,
+  "cwd": "/path",
+  "auto": null,
+  "format": "findings",
+  "profile": "lite",
+  "contract": true,
+  "announce": "Companion ready: audit (…). Call with: send audit \"…\""
+}
+```
+
+---
+
+## `send` (spec)
+
+```sh
+companion send <name|sessionId> [message] [options]
+```
+
+Prefer **name**. Prefer **`--message-file`** for anything longer than a short line.
+
+| Flag | Notes |
+|------|--------|
+| `--message-file PATH\|-` | File or stdin; prefer over shell quoting |
+| `--images PATHS` | Comma-separated paths (companion Read tool) |
+| `--model ID` | Override this turn |
+| `--auto LEVEL` | Override (updates tracked default) |
+| `--cwd PATH` | Override (updates tracked) |
+| `--brief PATH` | Override (updates tracked) |
+| `--format prose\|findings` | Override this turn |
+| `--bg` | Detach; return job handle immediately |
+| `--out PATH` | With `--bg`, where to write final JSON envelope |
+| `--response-file PATH` | Write long prose to file; envelope includes path |
+| `--idempotency-key KEY` | Safe retry: same key returns existing job/result |
+| `--on-done CMD` | With `--bg`: local shell hook when job finishes (not chat push) |
+| `--force` | Rare: allow send even if a job is running for this name |
+
+**Mutex:** if a job is already `running` for that name, `send` fails with the existing `jobId` unless `--force`.
+
+Foreground result:
+
+```json
+{
+  "sessionId": "…",
+  "name": "audit",
+  "response": "…",
+  "responseFile": null,
+  "isError": false,
+  "durationMs": 1234,
+  "brief": null,
+  "cwd": null,
+  "auto": null,
+  "format": "prose"
+}
+```
+
+Background accept:
+
+```json
+{
+  "jobId": "…",
+  "name": "audit",
+  "sessionId": "…",
+  "pid": 12345,
+  "outPath": "/…/jobs/….json",
+  "responseFile": null,
+  "status": "running"
+}
+```
+
+---
+
+## `list` (spec)
+
+```sh
+companion list [--stale] [--prune] [--deep]
+```
+
+```json
+{
+  "sessions": [ /* SessionRecord[] */ ],
+  "count": 1,
+  "roster": [
+    {
+      "name": "audit",
+      "role": "security auditor",
+      "cwd": "/path",
+      "auto": null,
+      "profile": "lite",
+      "format": "findings",
+      "job": "idle",
+      "lastUsedAt": "…",
+      "sessionId": "…"
+    }
+  ]
+}
+```
+
+- Default / `--stale` / `--prune`: **cheap** health only (pids, files). No model “pong” turn.
+- `--deep`: optional paid probe; documented as side-effecting (planned).
+
+With `--stale` / `--prune`, also `stale`, `staleCount`, `pruned`.
+
+---
+
+## `close` (spec)
+
+```sh
+companion close <name|sessionId> [--purge]
+```
+
+| Mode | Meaning |
+|------|---------|
+| default | **Untrack** — remove from companion roster/state |
+| `--purge` | Also stop in-flight job if any + clean our job artifacts for that name |
+
+Does **not** claim to fully delete droid’s own on-disk session unless droid exposes that API.
+
+```json
+{
+  "sessionId": "…",
+  "name": "audit",
+  "closed": true,
+  "purged": false,
+  "note": "Removed from companion tracking. Droid may still retain session data."
+}
+```
+
+---
+
+## `status` / `result` (spec)
+
+```sh
+companion status <jobId|name>
+companion result <jobId|name>
+companion result <jobId|name> --wait
+```
+
+`status`:
+
+```json
+{ "jobId": "…", "name": "audit", "status": "running|done|failed", "pid": 12345 }
+```
+
+`result`: final send JSON when `done`; structured error if still running or failed.  
+`result --wait`: block until terminal; **does not** kill the job if the waiter disconnects.
+
+See [background-jobs.md](background-jobs.md).
+
+---
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Usage / runtime / doctor failure |
