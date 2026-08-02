@@ -9,6 +9,8 @@ The installable formula for this project lives in the **kumamaki homebrew tap**,
 
 ```bash
 brew tap kumamaki/tap
+brew trust --formula kumamaki/tap/droid-companion   # Homebrew 6+ Tap Trust
+# Bun on PATH required at install time (not oven-sh/bun)
 brew install droid-companion
 droid-companion setup
 ```

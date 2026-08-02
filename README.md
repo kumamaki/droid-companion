@@ -36,8 +36,10 @@ Not the API: a shared freeform `chat.md` as the only bus.
 See **[docs/install.md](docs/install.md)**. Short version:
 
 ```bash
-# Homebrew
+# Homebrew (Homebrew 6+ needs tap trust)
 brew tap kumamaki/tap
+brew trust --formula kumamaki/tap/droid-companion
+# Bun on PATH at install time (https://bun.sh — not required as a brew dep)
 brew install droid-companion
 droid-companion setup          # doctor → offer skill install → first commands
 

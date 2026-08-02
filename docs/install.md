@@ -37,15 +37,26 @@ Flags: `--yes` (non-interactive: install skill if missing and safe), `--skip-ski
 
 ## Homebrew
 
+Homebrew 6+ **Tap Trust** blocks third-party taps until you trust them.
+
 ```bash
+# Once per machine (trust this tap's formulae)
 brew tap kumamaki/tap
+brew trust --formula kumamaki/tap/droid-companion
+# or whole tap: brew trust kumamaki/tap
+
+# Bun must be on PATH at *install* time (formula builds from source).
+# Official installer is fine — no need for oven-sh/bun.
+which bun || curl -fsSL https://bun.sh/install | bash
+
 brew install droid-companion
 droid-companion setup
 ```
 
+If `brew install` still mentions `oven-sh/bun`, your formula is outdated — pull the latest tap (`brew update`) or reinstall from this repo’s formula (PATH `bun`, no oven-sh dep).
+
 Formula: [kumamaki/homebrew-tap](https://github.com/kumamaki/homebrew-tap) → `Formula/droid-companion.rb`  
-Build depends on Bun; runtime depends on Factory `droid` CLI.  
-After first tag, formula `sha256` must match the GitHub source tarball (see `scripts/release-checklist.md`).
+Runtime depends on Factory `droid` CLI.
 
 ## GitHub Release binary (planned)
 
