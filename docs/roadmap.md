@@ -66,8 +66,9 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 
 ## Current repo phase
 
-**Docs bake-in of locked decisions** (`0.1.0-dev`):
+**Core + jobs + presets shippable locally** (`0.1.0-dev`):
 
-- Layout, docs, contract v2, skill, build script stub
-- CLI: `--help` · `--version` · `doctor`
-- Full port of private `companion.ts` + jobs = next implementation slice
+- spawn/send/list/close/doctor/install-skill
+- send --bg · status · result --wait · mutex · idempotency · on-done
+- presets · examples · contract embed + binary share layout
+- Remaining: polish doctor/auth docs only as needed; GH/Homebrew release

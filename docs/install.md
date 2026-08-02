@@ -3,14 +3,32 @@
 ## Prerequisites
 
 1. **Droid CLI** installed and on `PATH` (`droid --version` works).
-2. Droid **authenticated** (same login you use interactively).
+2. Droid **authenticated** (login and/or `FACTORY_API_KEY`).
 3. For from-source / compile: **[Bun](https://bun.sh)** ≥ 1.1.
 
 ```sh
 companion doctor   # or: bun src/companion.ts doctor
 ```
 
-`doctor` reports PATH, droid version, contract presence, and state-dir writability.
+`doctor` reports PATH, droid version, contract presence, state-dir writability, and **auth presence** (`credentialsPresent` vs `credentialsMissing`). It does **not** live-probe login (`authVerified` stays false).
+
+### Env
+
+| Var | Purpose |
+|-----|---------|
+| `DROID_BIN` | Path to `droid` if not on PATH |
+| `DROID_COMPANION_HOME` | State dir (default `~/.local/share/droid-companion`) |
+| `DROID_COMPANION_CONTRACT` | Override path to `contract.md` |
+| `FACTORY_API_KEY` | Optional; same as host Droid |
+
+### Contract resolution
+
+1. `DROID_COMPANION_CONTRACT`  
+2. Repo `contract/contract.md` (dev)  
+3. `$DROID_COMPANION_HOME/contract.md`  
+4. `~/.local/share/droid-companion/contract.md`  
+5. Share next to binary (`…/share/droid-companion/contract.md`)  
+6. **Embedded** contract materialized into the state dir if nothing else exists
 
 ## Homebrew (planned)
 
@@ -61,6 +79,8 @@ bun src/companion.ts install-skill
 
 Copies skill + contract into `~/.factory/skills/droid-companion/`.  
 Optional: `--target DIR` for a custom skills root.
+
+If that directory already has a private `companion.ts`, install **refuses** unless you pass `--force` (avoids clobbering a hand-maintained skill layout).
 
 ## Verify
 

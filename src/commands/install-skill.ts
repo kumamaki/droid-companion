@@ -16,6 +16,9 @@ function output(obj: unknown): void {
 /**
  * Copy public skill + contract into ~/.factory/skills/droid-companion/
  * so the main Droid can load the skill.
+ *
+ * Refuses to overwrite when a legacy private companion.ts is present
+ * unless --force (avoids clobbering a hand-maintained private skill).
  */
 export async function cmdInstallSkill(opts: {
   target?: string;
@@ -38,29 +41,36 @@ export async function cmdInstallSkill(opts: {
 
   const skillDest = join(targetDir, "SKILL.md");
   const contractDest = join(targetDir, "contract.md");
+  const legacyCli = join(targetDir, "companion.ts");
+  const legacyPresent = existsSync(legacyCli);
 
-  if (!opts.force && existsSync(skillDest)) {
-    // Still overwrite skill (product updates) but note it
+  if (legacyPresent && !opts.force) {
+    console.error(
+      JSON.stringify({
+        error:
+          "Refusing to overwrite skill dir that contains legacy companion.ts (private layout).",
+        targetDir,
+        legacyCompanionTs: legacyCli,
+        hint: "Pass --force to install public SKILL.md/contract.md anyway, or --target DIR for a separate path.",
+      }),
+    );
+    process.exit(1);
   }
 
-  // Rewrite skill paths: prefer `companion` on PATH; keep bun fallback to this repo for dev.
   let skillBody = readFileSync(skillSrc, "utf-8");
   skillBody = skillBody.replace(
     /bun \/path\/to\/droid-companion\/src\/companion\.ts/g,
     `bun ${join(REPO_ROOT, "src", "companion.ts")}`,
   );
 
-  const legacyCli = join(targetDir, "companion.ts");
-  const legacyPresent = existsSync(legacyCli);
-
   writeFileSync(skillDest, skillBody.endsWith("\n") ? skillBody : skillBody + "\n");
   copyFileSync(contractSrc, contractDest);
 
-  // Pointer so users know install source
   writeFileSync(
     join(targetDir, "INSTALL_SOURCE.txt"),
     `Installed from <${REPO_ROOT}> at ${new Date().toISOString()}\n` +
-      `Binary: companion (or bun ${join(REPO_ROOT, "src", "companion.ts")})\n`,
+      `Binary: companion (or bun ${join(REPO_ROOT, "src", "companion.ts")})\n` +
+      (legacyPresent ? `Legacy companion.ts left in place (force install).\n` : ""),
   );
 
   output({
@@ -69,11 +79,12 @@ export async function cmdInstallSkill(opts: {
     skill: skillDest,
     contract: contractDest,
     legacyCompanionTs: legacyPresent ? legacyCli : null,
+    forced: opts.force === true,
     warnings: legacyPresent
       ? [
-          "Target dir already had companion.ts (private skill layout). SKILL.md now points at the public CLI; legacy companion.ts was left in place but is no longer the skill entry.",
+          "Legacy companion.ts present; public SKILL.md installed with --force. Prefer PATH `companion` from this repo for new work.",
         ]
       : [],
-    note: "Main Droid should pick up skill/droid-companion. Prefer `companion` on PATH or the bun path written into the skill.",
+    note: "Main Droid should pick up skill/droid-companion.",
   });
 }

@@ -60,7 +60,7 @@ Copies `skill/SKILL.md` and `contract/contract.md` into `~/.factory/skills/droid
 companion doctor
 ```
 
-Example shape (fields will grow; auth must not false-green):
+Example shape:
 
 ```json
 {
@@ -70,14 +70,18 @@ Example shape (fields will grow; auth must not false-green):
     "droidOnPath": true,
     "droidVersion": "0.186.0",
     "contractPresent": true,
+    "contractPath": "…",
     "stateDir": "/Users/you/.local/share/droid-companion",
-    "stateDirWritable": true
+    "stateDirWritable": true,
+    "authStatus": "credentialsPresent",
+    "authVerified": false,
+    "authSignals": ["~/.factory/auth.v2.file present"]
   }
 }
 ```
 
-Exit `0` if critical checks pass; `1` if `droid` missing or state dir unusable.  
-`droid --version` alone is **not** proof of login — see roadmap / doctor harden beads.
+Exit `0` if droid/contract/state critical checks pass; `1` otherwise.  
+`ok: true` **does not** mean login is verified (`authVerified` is always false without a live probe).
 
 ---
 

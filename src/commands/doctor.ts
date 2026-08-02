@@ -3,8 +3,11 @@ import { join } from "path";
 import {
   PACKAGE_NAME,
   VERSION,
+  contractCandidates,
+  detectAuthPresence,
   droidBin,
   ensureStateDir,
+  materializeEmbeddedContract,
   resolveContractPath,
   stateDir,
 } from "../lib/paths";
@@ -59,13 +62,19 @@ function ensureWritable(dir: string): { ok: boolean; detail?: string } {
 
 export async function cmdDoctor(): Promise<void> {
   const droid = await checkDroid();
-  const contractPath = resolveContractPath();
+  // Prefer existing file; else materialize embed into state dir
+  let contractPath = resolveContractPath();
+  if (!contractPath) {
+    contractPath = materializeEmbeddedContract();
+  }
   const dir = stateDir();
   const state = ensureWritable(dir);
   if (state.ok) ensureStateDir();
 
-  // Auth is not verified by --version alone (see 41g.13).
-  const authStatus = "notVerified";
+  const auth = detectAuthPresence();
+  // Never claim verified without a live probe (not default — cost/side effects).
+  const authStatus =
+    auth.status === "present" ? "credentialsPresent" : "credentialsMissing";
 
   const criticalOk = droid.ok && state.ok && contractPath !== null;
 
@@ -80,20 +89,26 @@ export async function cmdDoctor(): Promise<void> {
       droidDetail: droid.detail ?? null,
       contractPresent: contractPath !== null,
       contractPath,
+      contractCandidates: contractCandidates(),
+      contractEmbedAvailable: true,
       stateDir: dir,
       stateDirWritable: state.ok,
       stateDirDetail: state.detail ?? null,
+      droidCompanionHome: process.env.DROID_COMPANION_HOME ?? null,
       authStatus,
+      authVerified: false,
+      authSignals: auth.signals,
       authNote:
-        "droid --version does not prove login. A failed spawn/send with transport/auth errors means re-auth with droid.",
+        auth.status === "present"
+          ? "Auth material present (env and/or ~/.factory auth files). Not a live login probe — spawn/send can still fail if credentials are stale."
+          : "No FACTORY_API_KEY and no ~/.factory auth files found. Login with droid or set credentials before spawn.",
     },
     notes: [
-      "Core: spawn / send / list / close.",
+      "ok:true does not mean auth is verified — see authStatus / authVerified.",
       "Background: send --bg · status · result --wait · mutex · idempotency-key · --on-done.",
       "Companion never applies an internal kill timeout to droid exec.",
     ],
   });
 
-  // ok can be true while authStatus is notVerified — document honesty without hard-failing offline CI.
   process.exit(criticalOk ? 0 : 1);
 }

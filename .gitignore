@@ -2,8 +2,9 @@
 node_modules/
 dist/
 *.exe
-companion
-companion-*
+# local compile artifacts only; do not ignore source named companion.ts
+/companion
+/companion-*
 
 # Local runtime state (never commit)
 .sessions.json
