@@ -30,7 +30,7 @@ companion doctor   # or: bun src/companion.ts doctor
 5. Share next to binary (`…/share/droid-companion/contract.md`)  
 6. **Embedded** contract materialized into the state dir if nothing else exists
 
-## Homebrew (planned)
+## Homebrew
 
 ```bash
 brew tap kumamaki/tap
@@ -38,7 +38,9 @@ brew install droid-companion
 companion doctor
 ```
 
-Formula ships in [kumamaki/homebrew-tap](https://github.com/kumamaki/homebrew-tap), not as the long-term source of truth inside this repo. See `Formula/README.md`.
+Formula: [kumamaki/homebrew-tap](https://github.com/kumamaki/homebrew-tap) → `Formula/droid-companion.rb`  
+Build depends on Bun; runtime depends on Factory `droid` CLI.  
+After first tag, formula `sha256` must match the GitHub source tarball (see `scripts/release-checklist.md`).
 
 ## GitHub Release binary (planned)
 

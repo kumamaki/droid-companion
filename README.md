@@ -36,12 +36,12 @@ Not the API: a shared freeform `chat.md` as the only bus.
 See **[docs/install.md](docs/install.md)**. Short version:
 
 ```bash
-# Planned
+# Homebrew (after v0.1.0 tag + formula sha256)
 brew tap kumamaki/tap
 brew install droid-companion
 
-# From source (today)
-git clone git@github.com:kumamaki/droid-companion.git
+# From source
+git clone personal:kumamaki/droid-companion.git   # or git@github.com:kumamaki/droid-companion.git
 cd droid-companion
 bun src/companion.ts doctor
 ```

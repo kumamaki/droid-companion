@@ -4,7 +4,7 @@ import { homedir } from "os";
 import { fileURLToPath } from "url";
 import { EMBEDDED_CONTRACT } from "./contract-embed";
 
-export const VERSION = "0.1.0-dev";
+export const VERSION = "0.1.0";
 export const PACKAGE_NAME = "droid-companion";
 
 /**
