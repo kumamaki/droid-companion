@@ -69,7 +69,7 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 
 ## Current repo phase
 
-**Shippable `0.1.1`:**
+**Shippable `0.1.2`:**
 
 - spawn/send/list/close/doctor/setup/install-skill
 - send --bg · status · result --wait · mutex · idempotency · on-done
