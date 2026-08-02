@@ -11,7 +11,7 @@ droid-companion list
 droid-companion close audit
 ```
 
-> **Status:** `0.1.0-dev` — core + background jobs (`send --bg` · `status` · `result --wait` · mutex · idempotency).
+> **Status:** `0.1.1` — core + background jobs + `setup` wizard (`send --bg` · `status` · `result --wait` · mutex · idempotency).
 
 ## Interface (locked)
 

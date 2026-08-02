@@ -49,9 +49,15 @@ Never commit session or job state. Prefer atomic writes + lock when implementing
 
 ```sh
 bun src/companion.ts --help
-bun src/companion.ts doctor
-bun run typecheck
-bun run build   # when implementing binary release
+bun src/companion.ts setup --yes --skip-skill
+bun run typecheck   # tsc --noEmit
+bun run lint        # oxlint
+bun run test        # bun:test unit
+bun run test:cli    # help/doctor/setup/list smoke (temp home)
+bun run test:all
+bun run build       # compile binary
+bun run clean
+./scripts/release.sh   # prep only; does not push
 ```
 
 ## Ship notes

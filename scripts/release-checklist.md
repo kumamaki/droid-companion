@@ -1,68 +1,64 @@
-# Release checklist (v0.1.0)
+# Release checklist
 
-Network/GitHub was unreachable from the agent environment when this was written.
-Run these on a machine with GitHub access (and valid `gh` / SSH).
+Agent does **not** push remotes. You run push / tag / brew / gh release.
 
-## 1. Finish local version
+Automated prep:
 
 ```bash
 cd ~/Work/droid-companion
-git log --oneline -5
-# ensure VERSION is 0.1.0 in src/lib/paths.ts + package.json
+./scripts/release.sh          # typecheck · lint · test · cli smoke · build
+# ./scripts/release.sh --multi
 ```
 
-## 2. Create GitHub repo + push
+## 1. Version
+
+Single source: **`package.json` `version`** (imported by `src/lib/paths.ts`).
 
 ```bash
-# Prefer SSH alias (AGENTS.md): personal:kumamaki/...
-gh auth refresh -h github.com   # if gh token broken
-gh repo create kumamaki/droid-companion --public --source=. --remote=origin --description "Named multi-turn companion sessions for Factory Droid"
-# if remote already set to personal:kumamaki/droid-companion.git:
-git push -u origin main
+# bump only package.json, e.g. 0.1.2
+bun -e 'import { VERSION } from "./src/lib/paths.ts"; console.log(VERSION)'
+# must match package.json
 ```
 
-If `gh` fails, create empty repo on github.com then:
+## 2. Push main + tag
 
 ```bash
-git remote add origin personal:kumamaki/droid-companion.git   # if needed
-git push -u origin main
+git push origin main
+git tag -a v0.1.2 -m "v0.1.2: …"
+git push origin v0.1.2
 ```
 
-## 3. Tag and push tag
+(Use the version you actually bumped.)
+
+## 3. Optional: GH Release assets
 
 ```bash
-git tag -a v0.1.0 -m "v0.1.0: public companion CLI core + background jobs"
-git push origin v0.1.0
+./scripts/build-binary.sh --multi
+gh release create v0.1.2 \
+  --title "v0.1.2" \
+  --notes "See README." \
+  dist/droid-companion*
 ```
 
-## 4. Optional: attach binary assets
+Host-only binary is enough if brew builds from source.
+
+## 4. Homebrew formula sha256
 
 ```bash
-./scripts/build-binary.sh
-# rename for clarity, e.g. droid-companion-darwin-arm64
-gh release create v0.1.0 \
-  --title "v0.1.0" \
-  --notes "Named multi-turn companions for Droid. See README." \
-  dist/droid-companion#droid-companion-darwin-arm64
-```
-
-## 5. Homebrew formula sha256
-
-```bash
-curl -sL https://github.com/kumamaki/droid-companion/archive/refs/tags/v0.1.0.tar.gz | shasum -a 256
-# paste into ~/Work/homebrew-tap/Formula/droid-companion.rb sha256
+curl -sL https://github.com/kumamaki/droid-companion/archive/refs/tags/v0.1.2.tar.gz | shasum -a 256
+# paste into ~/Work/homebrew-tap/Formula/droid-companion.rb (version, url, sha256)
 cd ~/Work/homebrew-tap
-# fix remote to personal: if needed
-git add Formula/droid-companion.rb README.md
-git commit -m "feat: Add droid-companion formula"
+git add Formula/droid-companion.rb
+git commit -m "chore: Bump droid-companion to 0.1.2"
 git push origin main
 ```
 
-## 6. Install test
+## 5. Install smoke
 
 ```bash
-brew tap kumamaki/tap
-brew install droid-companion
-droid-companion doctor
+brew update
+brew upgrade droid-companion   # or: brew reinstall droid-companion
+droid-companion setup --yes
 droid-companion --version
+droid-companion doctor
 ```

@@ -10,32 +10,34 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 - **Mutex** one in-flight job per name; optional `--idempotency-key`
 - **Notify:** job files + optional local `--on-done` only — **no chat push**
 - Names required; thin contract v2; recipes post-v0.1
+- Binary name: `droid-companion`
 
-## P0 — first public tag
+## P0 — first public tag (done)
 
 | Item | Notes |
 |------|--------|
-| Core commands | `spawn` · `send` · `list` · `close` |
+| Core commands | `spawn` · `send` · `list` · `close` · `setup` |
 | Names required | No anonymous UUID-first spawn |
 | Contract · lite · brief · findings | Thin contract v2 + role/presets for style |
 | Background jobs | `--bg` · status · result · `--wait` · mutex · idempotency |
 | No internal timeouts | Keep forever |
 | `doctor` | PATH, contract, state dir; no auth false-green |
 | Portable state | `~/.local/share/droid-companion/` |
-| Binary + brew | GH Release + `kumamaki/homebrew-tap` |
+| Binary + brew | GH + `kumamaki/homebrew-tap` |
 | Public skill | Anti-retry + interface rules |
 | Interface docs | overview / cli-reference / background-jobs / skill |
 
-## P1 — harden
+## P1 — harden (tooling largely done)
 
 | Item | Notes |
 |------|--------|
-| Job lifecycle tests | running → done; no double-send |
+| Job lifecycle unit tests | classify · mutex · idempotency pure helpers |
 | Cheap `list --stale` / `--prune` | No model pong by default |
 | Contract ship/embed | Install layout without git checkout |
-| `install-skill` + examples | Distribution friction |
+| `install-skill` + `setup` | Distribution friction |
 | Atomic state + lock | Concurrent spawn/send safety |
-| CI | typecheck + doctor smoke |
+| CI | typecheck · oxlint · bun:test · cli smoke |
+| Release script | `scripts/release.sh` + checklist |
 
 ## P2 — recipes (only if demanded)
 
@@ -49,11 +51,12 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 
 | Item | Notes |
 |------|--------|
-| Role presets | critic / auditor / fixer / advisor |
+| Role presets | critic / auditor / fixer / advisor (done) |
 | Human text mode | `--text` / TTY roster |
 | `fork` | Branch a companion conversation |
 | Last response on list | Busy/idle + last answer path |
 | npm package | Optional; binary remains primary |
+| Multi-arch GH assets | `build-binary.sh --multi` best-effort |
 
 ## Explicit non-goals (for now)
 
@@ -66,9 +69,9 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 
 ## Current repo phase
 
-**Core + jobs + presets shippable locally** (`0.1.0-dev`):
+**Shippable `0.1.1`:**
 
-- spawn/send/list/close/doctor/install-skill
+- spawn/send/list/close/doctor/setup/install-skill
 - send --bg · status · result --wait · mutex · idempotency · on-done
 - presets · examples · contract embed + binary share layout
-- Remaining: polish doctor/auth docs only as needed; GH/Homebrew release
+- tooling: `tsc` · oxlint · bun:test · cli smoke · GH Actions · `release.sh`

@@ -8,6 +8,11 @@ import {
   writeFileSync,
 } from "fs";
 import { join } from "path";
+import {
+  findByIdempotencyAmong,
+  findLatestByNameAmong,
+  findRunningAmong,
+} from "./job-select";
 import { ensureStateDir, stateDir } from "./paths";
 import { withStateLock } from "./state";
 import type { ReplyFormat } from "./types";
@@ -100,31 +105,21 @@ export function listJobs(): JobRecord[] {
 }
 
 export function findRunningJobForName(name: string): JobRecord | undefined {
-  const needle = name.trim().toLowerCase();
-  return listJobs().find(
-    (j) => j.name.toLowerCase() === needle && j.status === "running",
-  );
+  return findRunningAmong(listJobs(), name);
 }
 
 export function findJobByIdempotencyKey(key: string): JobRecord | undefined {
-  const needle = key.trim();
-  if (!needle) return undefined;
-  // Prefer newest match
-  const matches = listJobs()
-    .filter((j) => j.idempotencyKey === needle)
-    .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1));
-  return matches[0];
+  return findByIdempotencyAmong(listJobs(), key);
 }
 
 export function resolveJobRef(ref: string): JobRecord {
   const byId = loadJob(ref);
   if (byId) return byId;
-  const needle = ref.trim().toLowerCase();
-  const forName = listJobs()
-    .filter((j) => j.name.toLowerCase() === needle)
-    .sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1));
-  if (forName[0]) return forName[0];
-  throw new Error(`No job for <${ref}> (jobId or companion name). Run list / status.`);
+  const forName = findLatestByNameAmong(listJobs(), ref);
+  if (forName) return forName;
+  throw new Error(
+    `No job for <${ref}> (jobId or companion name). Run list / status.`,
+  );
 }
 
 export function isPidAlive(pid: number | undefined): boolean {

@@ -12,8 +12,18 @@
   "scripts": {
     "droid-companion": "bun src/companion.ts",
     "doctor": "bun src/companion.ts doctor",
+    "setup": "bun src/companion.ts setup",
     "build": "bash scripts/build-binary.sh",
-    "typecheck": "bun build --target=bun src/companion.ts --outfile=/tmp/droid-companion-typecheck.js"
+    "build:multi": "bash scripts/build-binary.sh --multi",
+    "clean": "bash scripts/clean.sh",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src tests scripts",
+    "test": "bun test tests",
+    "test:unit": "bun test tests",
+    "test:cli": "bun scripts/smoke-cli.ts",
+    "test:all": "bun run typecheck && bun run lint && bun run test && bun run test:cli",
+    "release": "bash scripts/release.sh",
+    "smoke:classify": "bun scripts/smoke-classify.ts"
   },
   "engines": {
     "bun": ">=1.1.0"
@@ -28,5 +38,10 @@
     "cli",
     "agents",
     "companion"
-  ]
+  ],
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "oxlint": "^1.76.0",
+    "typescript": "^7.0.2"
+  }
 }

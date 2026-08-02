@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Unit tests
+        run: bun run test
+
+      - name: CLI smoke
+        run: bun run test:cli
+
+      # doctor needs droid on PATH — optional soft check when absent
+      - name: Doctor soft (no droid required)
+        run: |
+          if command -v droid >/dev/null 2>&1; then
+            bun src/companion.ts doctor
+          else
+            echo "droid not on PATH in CI — skipping live doctor (expected)"
+          fi

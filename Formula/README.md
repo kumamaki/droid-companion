@@ -10,14 +10,14 @@ The installable formula for this project lives in the **kumamaki homebrew tap**,
 ```bash
 brew tap kumamaki/tap
 brew install droid-companion
-droid-companion doctor
+droid-companion setup
 ```
 
 ## When publishing a release
 
-Follow `scripts/release-checklist.md` in this repo:
+Follow `scripts/release-checklist.md` / `./scripts/release.sh` in this repo:
 
-1. Tag `v0.1.0` and push.
+1. Bump `package.json` version; tag `vX.Y.Z` and push.
 2. Set `sha256` in `homebrew-tap/Formula/droid-companion.rb` from the GitHub source tarball.
 3. Push the tap.
 

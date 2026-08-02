@@ -5,6 +5,7 @@ dist/
 # local compile artifacts
 /droid-companion
 /droid-companion-*
+/tmp/
 
 # Local runtime state (never commit)
 .sessions.json

@@ -3,9 +3,11 @@ import { dirname, join } from "path";
 import { homedir } from "os";
 import { fileURLToPath } from "url";
 import { EMBEDDED_CONTRACT } from "./contract-embed";
+import packageJson from "../../package.json";
 
-export const VERSION = "0.1.1";
-export const PACKAGE_NAME = "droid-companion";
+/** Single source of truth: package.json version. */
+export const VERSION = packageJson.version;
+export const PACKAGE_NAME = packageJson.name;
 
 /**
  * Repo root when running from source (`src/lib` → `../..`).
@@ -94,7 +96,12 @@ export function materializeEmbeddedContract(): string | null {
     const path = join(stateDir(), "contract.md");
     // Always refresh embed when missing; do not clobber a custom longer file blindly
     if (!existsSync(path)) {
-      writeFileSync(path, EMBEDDED_CONTRACT.endsWith("\n") ? EMBEDDED_CONTRACT : EMBEDDED_CONTRACT + "\n");
+      writeFileSync(
+        path,
+        EMBEDDED_CONTRACT.endsWith("\n")
+          ? EMBEDDED_CONTRACT
+          : EMBEDDED_CONTRACT + "\n",
+      );
     }
     return existsSync(path) ? path : null;
   } catch {
@@ -104,7 +111,7 @@ export function materializeEmbeddedContract(): string | null {
 
 /**
  * Cheap auth signal only — never reads secret contents into logs.
- * present: env key set OR known factory auth files exist
+ * present: env key *** OR known factory auth files exist
  * missing: neither
  * never claims "verified" without a live probe (not done by default).
  */

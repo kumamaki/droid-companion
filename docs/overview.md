@@ -33,7 +33,7 @@ Short replies may sit in the JSON `response` field. Long prose should prefer a f
 
 ## Core product vs recipes
 
-**Core (v0.1):** named multi-turn loop — `spawn` · `send` · `list` · `close` · `doctor` · `status` · `result`.
+**Core (v0.1):** named multi-turn loop — `setup` · `spawn` · `send` · `list` · `close` · `doctor` · `install-skill` · `status` · `result`.
 
 **Recipes (later):** multi-agent one-shots on top of core — `discuss` (two-sided debate), `jury` (parallel multi-model), `vision` (image paths via Read). Not the headline product. Prefer `send --images` over a vision verb.
 
