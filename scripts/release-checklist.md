@@ -4,8 +4,7 @@
 
 | Who | Tool | Pushes? |
 |-----|------|---------|
-| **You** | `just ship` / `./scripts/ship.sh` | Yes — `main` + tag; formula **commit** only |
-| **You** | `git push` in homebrew-tap | Yes — after ship |
+| **You** | `just ship` / `./scripts/ship.sh` | Yes — `main` + tag + formula commit **and** tap push |
 | **Agent** | `just release` / `./scripts/release.sh` only | **Never** |
 
 ## Happy path (preferred)
@@ -25,24 +24,24 @@ just ship
 # ./scripts/ship.sh   # same as just ship
 ```
 
-`ship.sh` will:
+`ship.sh` / `just ship` will:
 
 1. Run release prep (typecheck · lint · unit · cli smoke · build)
 2. `git push origin main`
 3. Annotated tag `v$VERSION` + push tag
 4. Download GitHub source tarball → sha256
-5. Rewrite `homebrew-tap/Formula/droid-companion.rb` (url / sha256 / version) and **commit**
+5. Rewrite `homebrew-tap/Formula/droid-companion.rb` (url / sha256 / version), **commit**, and **push** the tap
 
-4. You finish brew:
+Then:
 
 ```bash
-cd ~/Work/homebrew-tap && git push origin main
 brew update && brew upgrade droid-companion
 droid-companion --version
 droid-companion setup
 ```
 
-Env override: `DROID_COMPANION_HOMEBREW_TAP=/path/to/homebrew-tap`.
+Flags: `--no-brew` (skip formula) · `--no-brew-push` (commit only) ·  
+Env: `DROID_COMPANION_HOMEBREW_TAP=/path/to/homebrew-tap`.
 
 ## Prep only (agents / no network push)
 

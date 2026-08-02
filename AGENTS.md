@@ -57,13 +57,13 @@ just doctor
 just setup --yes --skip-skill
 just build
 just release         # prep only; does not push
-# NEVER: just ship   — user-only (pushes main+tag, commits brew formula)
+# NEVER: just ship   — user-only (pushes main+tag + homebrew-tap)
 ```
 
 ## Ship notes
 
 - Homebrew formula lives in `kumamaki/homebrew-tap` (see `Formula/README.md`).
-- **User** ships with `just ship` / `./scripts/ship.sh` (see `scripts/release-checklist.md`).
+- **User** ships with `just ship` / `./scripts/ship.sh` (see `scripts/release-checklist.md`) — includes formula **commit + push**.
 - **Agent** uses `just release` / `./scripts/release.sh` only — never `ship`, never push/tag.
 - Do not push remotes from the agent unless the user asks; never force-push.
 

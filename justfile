@@ -61,6 +61,6 @@ setup *args:
 release *args:
     bash scripts/release.sh {{ args }}
 
-# USER-ONLY: push main+tag, sha256, commit brew formula (never for agents).
+# USER-ONLY: push main+tag, sha256, commit+push brew formula (never for agents).
 ship *args:
     bash scripts/ship.sh {{ args }}

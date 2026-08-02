@@ -6,7 +6,7 @@
 #   2. push origin main
 #   3. annotated tag v$VERSION + push tag
 #   4. download source tarball → sha256
-#   5. update homebrew-tap Formula + commit (you still push the tap)
+#   5. update homebrew-tap Formula + commit + push tap
 #
 # Agent policy: do NOT run this script (it pushes). Agents use ./scripts/release.sh only.
 #
@@ -14,7 +14,8 @@
 #   ./scripts/ship.sh
 #   ./scripts/ship.sh --dry-run
 #   ./scripts/ship.sh --skip-tests
-#   ./scripts/ship.sh --no-brew
+#   ./scripts/ship.sh --no-brew           # skip formula entirely
+#   ./scripts/ship.sh --no-brew-push      # commit formula only; you push tap
 #   ./scripts/ship.sh --tap=$HOME/Work/homebrew-tap
 #   ./scripts/ship.sh --with-gh-release
 #   ./scripts/ship.sh --yes
@@ -26,18 +27,21 @@ cd "$ROOT"
 DRY_RUN=0
 SKIP_TESTS=0
 NO_BREW=0
+NO_BREW_PUSH=0
 WITH_GH=0
 YES=0
 MULTI=0
 TAP_DIR="${DROID_COMPANION_HOMEBREW_TAP:-$ROOT/../homebrew-tap}"
 REPO_SLUG="kumamaki/droid-companion"
 FORMULA_NAME="droid-companion"
+TAP_PUSHED=0
 
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     --skip-tests) SKIP_TESTS=1 ;;
     --no-brew) NO_BREW=1 ;;
+    --no-brew-push) NO_BREW_PUSH=1 ;;
     --with-gh-release) WITH_GH=1 ;;
     --yes|-y) YES=1 ;;
     --multi) MULTI=1 ;;
@@ -45,7 +49,7 @@ for arg in "$@"; do
       TAP_DIR="${arg#--tap=}"
       ;;
     -h|--help)
-      sed -n '2,20p' "$0"
+      sed -n '2,22p' "$0"
       exit 0
       ;;
     *)
@@ -128,7 +132,13 @@ if git rev-parse "$TAG" >/dev/null 2>&1; then
 fi
 
 if [[ "$YES" -eq 0 && "$DRY_RUN" -eq 0 ]]; then
-  printf "Proceed to push main + tag %s and update brew formula? [y/N] " "$TAG"
+  brew_msg="update+commit+push homebrew-tap"
+  if [[ "$NO_BREW" -eq 1 ]]; then
+    brew_msg="skip brew"
+  elif [[ "$NO_BREW_PUSH" -eq 1 ]]; then
+    brew_msg="update+commit brew formula (no tap push)"
+  fi
+  printf "Proceed to push main + tag %s and %s? [y/N] " "$TAG" "$brew_msg"
   read -r ans
   case "$ans" in
     y|Y|yes|YES) ;;
@@ -215,6 +225,7 @@ else
   echo "→ update formula <$FORMULA>"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "dry-run: set version=$VERSION url=$TARBALL_URL sha256=$SHA"
+    echo "dry-run: git -C $TAP_DIR commit Formula/${FORMULA_NAME}.rb"
   else
     FORMULA_TMP="$(mktemp)"
     awk -v ver="$VERSION" -v url="$TARBALL_URL" -v sha="$SHA" '
@@ -256,6 +267,22 @@ else
       git -C "$TAP_DIR" commit -m "chore: Bump ${FORMULA_NAME} to ${VERSION}"
     fi
   fi
+
+  if [[ "$NO_BREW_PUSH" -eq 1 ]]; then
+    echo "→ skip tap push (--no-brew-push)"
+  else
+    TAP_BRANCH="$(git -C "$TAP_DIR" rev-parse --abbrev-ref HEAD)"
+    if [[ "$TAP_BRANCH" != "main" && "$TAP_BRANCH" != "master" ]]; then
+      echo "warn: tap branch is <$TAP_BRANCH> (expected main/master); pushing anyway"
+    fi
+    echo "→ push homebrew-tap origin <$TAP_BRANCH>"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "dry-run: git -C $TAP_DIR push origin $TAP_BRANCH"
+    else
+      git -C "$TAP_DIR" push origin "$TAP_BRANCH"
+      TAP_PUSHED=1
+    fi
+  fi
 fi
 
 # ── 6. Optional GH Release ───────────────────────────────────────────
@@ -291,10 +318,20 @@ echo
 echo "=== ship complete ==="
 echo "  tag     $TAG"
 echo "  sha256  $SHA"
-if [[ "$NO_BREW" -eq 0 ]]; then
-  echo "  tap commit ready — you still push:"
+if [[ "$NO_BREW" -eq 1 ]]; then
+  echo "  brew    skipped (--no-brew)"
+elif [[ "$NO_BREW_PUSH" -eq 1 ]]; then
+  echo "  tap     formula committed; push yourself:"
   echo "    cd $TAP_DIR && git push origin main"
-  echo "  then: brew update && brew upgrade droid-companion"
+elif [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "  tap     would push (dry-run)"
+elif [[ "$TAP_PUSHED" -eq 1 ]]; then
+  echo "  tap     pushed"
+else
+  echo "  tap     formula up to date (push skipped or nothing new)"
+fi
+if [[ "$NO_BREW" -eq 0 ]]; then
+  echo "  install: brew update && brew upgrade droid-companion"
 fi
 echo "  smoke:  droid-companion --version   # expect $VERSION"
 echo "          droid-companion setup"

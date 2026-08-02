@@ -19,11 +19,11 @@ Preferred:
 
 ```bash
 # in droid-companion (version already bumped + committed on main)
-./scripts/ship.sh
-cd ../homebrew-tap && git push origin main
+just ship
+# or: ./scripts/ship.sh
 ```
 
-`ship.sh` pushes main+tag, computes tarball sha256, and **commits** the formula.  
-You still push the tap. Details: `scripts/release-checklist.md`.
+`ship` / `ship.sh` pushes main+tag, computes tarball sha256, **commits and pushes** the formula in `homebrew-tap`.  
+Details: `scripts/release-checklist.md`.
 
 This directory is a pointer; the live formula is in the tap.

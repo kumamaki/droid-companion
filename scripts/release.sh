@@ -65,10 +65,9 @@ fi
 
 echo
 echo "=== next ==="
-echo "User ship (push + tag + brew formula commit):"
+echo "User ship (push main + tag + brew formula commit/push):"
 echo "  just ship"
 echo "  # or: ./scripts/ship.sh"
-echo "  # then: cd ../homebrew-tap && git push origin main"
 echo
 echo "Agent must not run ship.sh (pushes remotes). Prep-only is this script."
 echo "Manual fallback: scripts/release-checklist.md"
