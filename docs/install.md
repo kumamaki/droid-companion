@@ -7,10 +7,15 @@
 3. For from-source / compile: **[Bun](https://bun.sh)** ≥ 1.1.
 
 ```sh
-droid-companion doctor   # or: bun src/companion.ts doctor
+droid-companion setup    # first-run wizard (recommended)
+droid-companion doctor   # checks only (JSON)
+# or: bun src/companion.ts setup
 ```
 
-`doctor` reports PATH, droid version, contract presence, state-dir writability, and **auth presence** (`credentialsPresent` vs `credentialsMissing`). It does **not** live-probe login (`authVerified` stays false).
+**`setup`** (TTY): runs doctor checks (human summary), offers to install the agent skill, prints a first-commands cheat sheet, then emits a JSON summary on stdout.  
+Flags: `--yes` (non-interactive: install skill if missing and safe), `--skip-skill`, `--target DIR`.
+
+**`doctor`** reports PATH, droid version, contract presence, state-dir writability, and **auth presence** (`credentialsPresent` vs `credentialsMissing`). It does **not** live-probe login (`authVerified` stays false).
 
 ### Env
 
@@ -35,7 +40,7 @@ droid-companion doctor   # or: bun src/companion.ts doctor
 ```bash
 brew tap kumamaki/tap
 brew install droid-companion
-droid-companion doctor
+droid-companion setup
 ```
 
 Formula: [kumamaki/homebrew-tap](https://github.com/kumamaki/homebrew-tap) → `Formula/droid-companion.rb`  
@@ -61,7 +66,7 @@ Build locally:
 git clone git@github.com:kumamaki/droid-companion.git
 cd droid-companion
 bun src/companion.ts --help
-bun src/companion.ts doctor
+bun src/companion.ts setup
 ```
 
 Optional alias while developing:
@@ -88,9 +93,8 @@ If that directory already has a private `companion.ts`, install **refuses** unle
 
 ```sh
 droid-companion --version
-droid-companion doctor
-# after core port:
-# droid-companion spawn --name smoke --lite --system-prompt "You reply with pong only."
-# droid-companion send smoke "ping"
-# droid-companion close smoke
+droid-companion setup --yes          # or: doctor + install-skill
+droid-companion spawn --name smoke --preset advisor
+droid-companion send smoke "ping"
+droid-companion close smoke
 ```

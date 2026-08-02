@@ -14,6 +14,7 @@ Version: `droid-companion --version` → plain text version string (also in doct
 
 | Command | Role | Status |
 |---------|------|--------|
+| `setup` | First-run wizard (doctor → skill → cheat sheet) | implemented |
 | `spawn` | Create named companion | implemented |
 | `send` | Message existing companion (+ `--bg`) | implemented |
 | `list` | Roster + sessions | implemented |
@@ -44,13 +45,59 @@ Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps
 
 ---
 
+## `setup`
+
+```sh
+droid-companion setup [--yes] [--skip-skill] [--target DIR]
+```
+
+First-run onboarding for humans (and `--yes` for scripts):
+
+1. Run the same environment checks as `doctor` (human summary on **stderr**).
+2. Offer to install the agent skill (TTY prompts), or auto-install when safe with `--yes`.
+3. Print a short cheat sheet of next commands.
+4. Emit a JSON summary on **stdout**.
+
+| Flag | Effect |
+|------|--------|
+| `--yes` | No prompts. Install skill if missing and safe (refuses legacy `companion.ts` without force). |
+| `--skip-skill` | Doctor + cheat sheet only. |
+| `--target DIR` | Passed through to skill install. |
+
+Non-TTY without `--yes`: doctor + cheat sheet only; skill not installed.
+
+Example summary shape:
+
+```json
+{
+  "ok": true,
+  "command": "setup",
+  "doctor": { "ok": true, "checks": { "…": "…" } },
+  "skill": {
+    "action": "installed",
+    "targetDir": "/Users/you/.factory/skills/droid-companion",
+    "detail": "Installed skill into <…>"
+  },
+  "next": ["droid-companion spawn --name smoke --preset advisor", "…"]
+}
+```
+
+`skill.action`: `installed` · `reinstalled` · `already_present` · `skipped` · `refused_legacy` · `failed`.
+
+Exit `0` when critical doctor checks pass and skill did not fail; `1` otherwise. Declining skill install is not a failure.
+
+---
+
 ## `install-skill`
 
 ```sh
-droid-companion install-skill [--target DIR]
+droid-companion install-skill [--target DIR] [--force]
 ```
 
-Copies `skill/SKILL.md` and `contract/contract.md` into `~/.factory/skills/droid-companion/` (or `--target`).
+Copies `skill/SKILL.md` and `contract/contract.md` into `~/.factory/skills/droid-companion/` (or `--target`).  
+Refuses when legacy `companion.ts` is present unless `--force`.
+
+Agents/scripts: prefer this (or `setup --yes`) over interactive setup.
 
 ---
 

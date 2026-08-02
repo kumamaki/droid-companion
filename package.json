@@ -13,7 +13,7 @@
     "droid-companion": "bun src/companion.ts",
     "doctor": "bun src/companion.ts doctor",
     "build": "bash scripts/build-binary.sh",
-    "typecheck": "bun build --no-bundle src/companion.ts src/lib/*.ts src/commands/*.ts"
+    "typecheck": "bun build --target=bun src/companion.ts --outfile=/tmp/droid-companion-typecheck.js"
   },
   "engines": {
     "bun": ">=1.1.0"

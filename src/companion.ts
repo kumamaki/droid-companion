@@ -2,7 +2,7 @@
 /**
  * droid-companion — named multi-turn companion sessions for Factory Droid.
  *
- * Core: spawn / send / list / close / doctor / install-skill
+ * Core: spawn / send / list / close / doctor / setup / install-skill
  * Jobs: send --bg / status / result / result --wait / _run-job
  * Recipes deferred.
  */
@@ -19,6 +19,7 @@ import { cmdList } from "./commands/list";
 import { cmdResult } from "./commands/result";
 import { cmdRunJob } from "./commands/run-job";
 import { cmdSend } from "./commands/send";
+import { cmdSetup } from "./commands/setup";
 import { cmdSpawn } from "./commands/spawn";
 import { cmdStatus } from "./commands/status";
 
@@ -43,6 +44,7 @@ Usage:
   droid-companion --version
 
 Commands:
+  setup                  First-run wizard (doctor → skill → cheat sheet)
   doctor                 Check droid, contract, and state directory
   install-skill          Copy skill + contract into ~/.factory/skills
   spawn --name NAME      Create a named companion
@@ -51,6 +53,11 @@ Commands:
   close <name> [--purge] Untrack a companion
   status <jobId|name>    Background job status
   result <jobId|name>    Background job result [--wait]
+
+setup options:
+  --yes                  Non-interactive (install skill if missing and safe)
+  --skip-skill           Doctor + cheat sheet only
+  --target DIR           Skill install directory
 
 Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
@@ -98,16 +105,35 @@ async function main(): Promise<void> {
 
   try {
     switch (command) {
+      case "setup": {
+        const opts = parseArgs(rest);
+        await cmdSetup({
+          yes: opts.yes === true,
+          skipSkill: opts["skip-skill"] === true,
+          target: opts.target as string | undefined,
+        });
+        break;
+      }
+
       case "doctor":
         await cmdDoctor();
         break;
 
       case "install-skill": {
         const opts = parseArgs(rest);
-        await cmdInstallSkill({
-          target: opts.target as string | undefined,
-          force: opts.force === true,
-        });
+        try {
+          await cmdInstallSkill({
+            target: opts.target as string | undefined,
+            force: opts.force === true,
+          });
+        } catch (err) {
+          // install-skill already wrote JSON error to stderr when refusing legacy
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!msg.includes("legacy companion.ts")) {
+            die({ error: msg }, 1);
+          }
+          process.exit(1);
+        }
         break;
       }
 

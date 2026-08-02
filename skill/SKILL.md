@@ -133,12 +133,16 @@ droid-companion close audit
 
 Default health checks are **cheap** (no model pong).
 
-### doctor / install-skill
+### setup / doctor / install-skill
 
 ```sh
-droid-companion doctor
-droid-companion install-skill
+droid-companion setup              # humans: TTY wizard
+droid-companion setup --yes        # scripts: doctor + safe skill install
+droid-companion doctor             # checks only (JSON)
+droid-companion install-skill      # skill copy only
 ```
+
+**Humans** run `setup` after install. **Agents** use `doctor` / `install-skill` (or `setup --yes`) — do not drive interactive prompts.
 
 `install-skill` copies this skill + contract into `~/.factory/skills/droid-companion/`.  
 Run `doctor` when install looks wrong or before first use in a new environment.

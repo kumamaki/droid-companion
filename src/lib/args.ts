@@ -14,8 +14,10 @@ const BOOLEAN_FLAGS = new Set([
   "help",
   "version",
   "synthesize",
+  "yes",
+  "skip-skill",
 ]);
-// install-skill --force included via "force"
+// install-skill --force · setup --yes / --skip-skill
 
 export function parseArgs(argv: string[]): Record<string, string | string[] | boolean> {
   const parsed: Record<string, string | string[] | boolean> = {};

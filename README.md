@@ -36,22 +36,23 @@ Not the API: a shared freeform `chat.md` as the only bus.
 See **[docs/install.md](docs/install.md)**. Short version:
 
 ```bash
-# Homebrew (after v0.1.0 tag + formula sha256)
+# Homebrew
 brew tap kumamaki/tap
 brew install droid-companion
+droid-companion setup          # doctor → offer skill install → first commands
 
 # From source
 git clone personal:kumamaki/droid-companion.git   # or git@github.com:kumamaki/droid-companion.git
 cd droid-companion
-bun src/companion.ts doctor
+bun src/companion.ts setup
 ```
 
 Binary name: **`droid-companion`**. Package / repo: **`droid-companion`**.
 
 ```bash
-# From this repo
-bun src/companion.ts install-skill   # → ~/.factory/skills/droid-companion
-# or: ./scripts/install-skill.sh
+# Non-interactive (CI / agents)
+droid-companion setup --yes
+# or only the skill: droid-companion install-skill
 ```
 
 Examples: [`examples/brief.md`](examples/brief.md) · [`examples/ask.md`](examples/ask.md)

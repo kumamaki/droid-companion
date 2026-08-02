@@ -45,16 +45,15 @@ export async function cmdInstallSkill(opts: {
   const legacyPresent = existsSync(legacyCli);
 
   if (legacyPresent && !opts.force) {
-    console.error(
-      JSON.stringify({
-        error:
-          "Refusing to overwrite skill dir that contains legacy companion.ts (private layout).",
-        targetDir,
-        legacyCompanionTs: legacyCli,
-        hint: "Pass --force to install public SKILL.md/contract.md anyway, or --target DIR for a separate path.",
-      }),
-    );
-    process.exit(1);
+    const payload = {
+      error:
+        "Refusing to overwrite skill dir that contains legacy companion.ts (private layout).",
+      targetDir,
+      legacyCompanionTs: legacyCli,
+      hint: "Pass --force to install public SKILL.md/contract.md anyway, or --target DIR for a separate path.",
+    };
+    console.error(JSON.stringify(payload));
+    throw new Error(payload.error);
   }
 
   let skillBody = readFileSync(skillSrc, "utf-8");
