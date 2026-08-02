@@ -106,6 +106,7 @@ Optional:
 
 - `--response-file PATH` — long answer on disk; JSON points at it  
 - `--on-done 'cmd'` — **local** hook only (not chat push)  
+- `--force` — rare; allow a second send while a job is running  
 
 **Rules:**
 
@@ -115,6 +116,7 @@ Optional:
 4. One in-flight job per name (expect error if already running).
 5. **Never kill** companion / `droid` PIDs to “unstick”.
 6. No expecting push into the main Droid session.
+7. Worker is internal `companion _run-job` (same binary); do not invoke it by hand unless debugging.
 
 ### list / close
 

@@ -89,7 +89,7 @@ export async function cmdDoctor(): Promise<void> {
     },
     notes: [
       "Core: spawn / send / list / close.",
-      "Background jobs (--bg) not implemented yet — see docs/background-jobs.md.",
+      "Background: send --bg · status · result --wait · mutex · idempotency-key · --on-done.",
       "Companion never applies an internal kill timeout to droid exec.",
     ],
   });

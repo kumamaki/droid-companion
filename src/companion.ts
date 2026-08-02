@@ -3,7 +3,8 @@
  * droid-companion — named multi-turn companion sessions for Factory Droid.
  *
  * Core: spawn / send / list / close / doctor
- * Jobs (--bg) planned next. Recipes deferred.
+ * Jobs: send --bg / status / result / result --wait / _run-job
+ * Recipes deferred.
  */
 
 import { parseArgs, parseFormat, positionalNonFlags, validateName } from "./lib/args";
@@ -13,12 +14,11 @@ import { readMessageInput } from "./lib/prompts";
 import { cmdClose } from "./commands/close";
 import { cmdDoctor } from "./commands/doctor";
 import { cmdList } from "./commands/list";
+import { cmdResult } from "./commands/result";
+import { cmdRunJob } from "./commands/run-job";
 import { cmdSend } from "./commands/send";
 import { cmdSpawn } from "./commands/spawn";
-
-function output(obj: unknown): void {
-  console.log(JSON.stringify(obj, null, 2));
-}
+import { cmdStatus } from "./commands/status";
 
 function die(payload: string | Record<string, unknown>, exitCode = 1): never {
   if (typeof payload === "string") {
@@ -45,12 +45,13 @@ Commands:
   spawn --name NAME      Create a named companion
   send <name> …          Message a companion
   list [--stale|--prune] Roster / sessions (cheap health; no model pong)
-  close <name>           Untrack a companion
-  status / result        Background jobs [planned]
+  close <name> [--purge] Untrack a companion
+  status <jobId|name>    Background job status
+  result <jobId|name>    Background job result [--wait]
 
 Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
-  No internal kill timeout. Long work: --bg next (see docs/background-jobs.md).
+  No internal kill timeout. Long work: send --bg → status / result --wait.
 
 spawn options:
   --name NAME (required)  --model ID  --auto LEVEL  --cwd PATH
@@ -60,9 +61,14 @@ spawn options:
 send options:
   --message-file PATH|-  --images PATHS  --model ID  --auto LEVEL
   --cwd PATH  --brief PATH  --format prose|findings
+  --bg  --out PATH  --response-file PATH  --idempotency-key KEY
+  --on-done CMD  --force
+
+result options:
+  --wait  --poll-ms N
 
 close options:
-  --purge                 Best-effort job cleanup when jobs exist
+  --purge                 Stop running jobs + remove job files for that session
 
 Docs: README.md · docs/
 `);
@@ -119,12 +125,7 @@ async function main(): Promise<void> {
         const opts = parseArgs(rest);
         const positionals = positionalNonFlags(rest);
         const ref = positionals[0];
-        if (!ref) die("Usage: send <name|sessionId> [message] [--message-file PATH]");
-        if (opts.bg === true) {
-          die(
-            "send --bg is not implemented yet (see docs/background-jobs.md / bead 41g.4). Use foreground send or shell detach carefully without re-sending.",
-          );
-        }
+        if (!ref) die("Usage: send <name|sessionId> [message] [--message-file PATH] [--bg]");
         const message = readMessageInput(
           positionals[1],
           opts["message-file"] as string | undefined,
@@ -137,6 +138,12 @@ async function main(): Promise<void> {
           cwd: opts.cwd as string | undefined,
           brief: opts.brief as string | undefined,
           format: parseFormat(opts.format),
+          bg: opts.bg === true,
+          out: opts.out as string | undefined,
+          responseFile: opts["response-file"] as string | undefined,
+          idempotencyKey: opts["idempotency-key"] as string | undefined,
+          onDone: opts["on-done"] as string | undefined,
+          force: opts.force === true,
         });
         break;
       }
@@ -159,12 +166,33 @@ async function main(): Promise<void> {
         break;
       }
 
-      case "status":
-      case "result":
-        die(
-          `Command <${command}> is planned with background jobs (see docs/background-jobs.md).`,
-        );
+      case "status": {
+        const ref = positionalNonFlags(rest)[0];
+        if (!ref) die("Usage: status <jobId|name>");
+        await cmdStatus(ref);
         break;
+      }
+
+      case "result": {
+        const opts = parseArgs(rest);
+        const ref = positionalNonFlags(rest)[0];
+        if (!ref) die("Usage: result <jobId|name> [--wait] [--poll-ms N]");
+        const pollMs = opts["poll-ms"]
+          ? parseInt(String(opts["poll-ms"]), 10)
+          : undefined;
+        await cmdResult(ref, {
+          wait: opts.wait === true,
+          pollMs: Number.isFinite(pollMs) ? pollMs : undefined,
+        });
+        break;
+      }
+
+      case "_run-job": {
+        const jobId = positionalNonFlags(rest)[0];
+        if (!jobId) die("Usage: _run-job <jobId>");
+        await cmdRunJob(jobId);
+        break;
+      }
 
       case "discuss":
       case "jury":

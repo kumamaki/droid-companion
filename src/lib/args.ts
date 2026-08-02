@@ -1,11 +1,31 @@
 import type { ReplyFormat } from "./types";
 
+/** Flags that never take a value (presence = true). */
+const BOOLEAN_FLAGS = new Set([
+  "bg",
+  "lite",
+  "force",
+  "wait",
+  "purge",
+  "stale",
+  "prune",
+  "deep",
+  "no-contract",
+  "help",
+  "version",
+  "synthesize",
+]);
+
 export function parseArgs(argv: string[]): Record<string, string | string[] | boolean> {
   const parsed: Record<string, string | string[] | boolean> = {};
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg.startsWith("--")) {
       const key = arg.slice(2);
+      if (BOOLEAN_FLAGS.has(key)) {
+        parsed[key] = true;
+        continue;
+      }
       const next = argv[i + 1];
       if (next && !next.startsWith("--")) {
         if (key === "images") {
@@ -27,6 +47,8 @@ export function positionalNonFlags(argv: string[]): string[] {
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg.startsWith("--")) {
+      const key = arg.slice(2);
+      if (BOOLEAN_FLAGS.has(key)) continue;
       const next = argv[i + 1];
       if (next && !next.startsWith("--")) i++;
       continue;

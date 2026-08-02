@@ -1,3 +1,4 @@
+import { removeJobsForSession } from "../lib/jobs";
 import { removeSession, resolveSessionRef } from "../lib/state";
 
 function output(obj: unknown): void {
@@ -6,21 +7,20 @@ function output(obj: unknown): void {
 
 export async function cmdClose(ref: string, opts: { purge?: boolean } = {}): Promise<void> {
   const tracked = resolveSessionRef(ref);
-  removeSession(tracked.sessionId);
-
-  // --purge: job cleanup lands with background jobs (41g.4 / 41g.14).
-  const purged = false;
+  let purgedJobs = 0;
   if (opts.purge) {
-    // No in-flight job registry yet; untrack is the available action.
+    purgedJobs = removeJobsForSession(tracked.sessionId);
   }
+  removeSession(tracked.sessionId);
 
   output({
     sessionId: tracked.sessionId,
     name: tracked.name,
     closed: true,
-    purged,
+    purged: opts.purge === true,
+    purgedJobs,
     note: opts.purge
-      ? "Untracked. Job purge not fully implemented yet (no job registry). Droid may still retain session data."
+      ? "Untracked and attempted job cleanup (SIGTERM running workers + remove job files). Droid may still retain session data."
       : "Removed from companion tracking (untrack). Droid may still retain session data.",
   });
 }

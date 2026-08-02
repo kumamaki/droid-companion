@@ -12,7 +12,7 @@ companion list
 companion close audit
 ```
 
-> **Status:** `0.1.0-dev` — **core works** (`spawn` / `send` / `list` / `close` / `doctor`). Background jobs (`--bg`) next.
+> **Status:** `0.1.0-dev` — core + background jobs (`send --bg` · `status` · `result --wait` · mutex · idempotency).
 
 ## Interface (locked)
 

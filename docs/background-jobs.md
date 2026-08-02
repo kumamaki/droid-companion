@@ -122,12 +122,8 @@ If `--response-file` was set, long prose is in that file and `response` may be e
 5. Attribute the final relay by companion **name**.
 6. Put long asks in `--message-file`; put long answers in `--response-file` when useful.
 
-## Shell-only workaround (until `--bg` ships)
+## Implementation notes
 
-```sh
-bun src/companion.ts send audit --message-file ask.md \
-  > /tmp/companion-audit.log 2>&1 &
-# poll the log; do NOT re-send
-```
-
-Prefer first-class `--bg` once implemented so every agent does not reinvent detach paths.
+- Worker: same CLI via `companion _run-job <jobId>` (detached, no kill timeout).
+- Job files: `~/.local/share/droid-companion/jobs/<jobId>.json` (+ `.out.json`).
+- `close --purge` SIGTERMs running workers for that session and removes job files.

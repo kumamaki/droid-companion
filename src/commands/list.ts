@@ -1,3 +1,4 @@
+import { findRunningJobForName, reconcileJob } from "../lib/jobs";
 import { loadSessions } from "../lib/state";
 
 function output(obj: unknown): void {
@@ -7,8 +8,7 @@ function output(obj: unknown): void {
 /**
  * list / list --stale / list --prune
  * Cheap health only: no model pong (41g.10).
- * --stale/--prune currently report empty stale sets until job pids exist;
- * they never call droid exec for a probe.
+ * job: idle|running from job registry + pid.
  */
 export async function cmdList(opts: {
   stale?: boolean;
@@ -22,18 +22,29 @@ export async function cmdList(opts: {
   }
 
   const sessions = loadSessions();
-  const roster = sessions.map((s) => ({
-    name: s.name,
-    role: s.role ?? null,
-    cwd: s.cwd ?? null,
-    auto: s.auto ?? null,
-    profile: s.profile ?? null,
-    format: s.format ?? null,
-    job: "idle" as const,
-    lastUsedAt: s.lastUsedAt ?? s.createdAt,
-    lastDurationMs: s.lastDurationMs ?? null,
-    sessionId: s.sessionId,
-  }));
+  const roster = sessions.map((s) => {
+    let jobState: "idle" | "running" = "idle";
+    const running = findRunningJobForName(s.name);
+    if (running) {
+      const j = reconcileJob(running);
+      if (j.status === "running") jobState = "running";
+    }
+    return {
+      name: s.name,
+      role: s.role ?? null,
+      cwd: s.cwd ?? null,
+      auto: s.auto ?? null,
+      profile: s.profile ?? null,
+      format: s.format ?? null,
+      job: jobState,
+      lastUsedAt: s.lastUsedAt ?? s.createdAt,
+      lastDurationMs: s.lastDurationMs ?? null,
+      lastResponsePreview: s.lastResponse
+        ? s.lastResponse.slice(0, 120)
+        : null,
+      sessionId: s.sessionId,
+    };
+  });
 
   if (!opts.stale && !opts.prune) {
     output({
@@ -44,8 +55,6 @@ export async function cmdList(opts: {
     return;
   }
 
-  // Cheap path: we do not know droid session liveness without a model probe.
-  // Report zero stale until job-pid tracking lands; never run sessionAlive pong.
   output({
     sessions,
     count: sessions.length,
@@ -54,6 +63,6 @@ export async function cmdList(opts: {
     pruned: false,
     roster,
     note:
-      "Cheap health only: no model pong. stale[] empty until job pid tracking; use --deep later for paid probe.",
+      "Cheap health only: no model pong. stale[] empty for droid session liveness; job busy shown via roster.job.",
   });
 }

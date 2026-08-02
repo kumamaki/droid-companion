@@ -40,6 +40,12 @@ export interface SendOptions {
   cwd?: string;
   brief?: string;
   format?: ReplyFormat;
+  bg?: boolean;
+  out?: string;
+  responseFile?: string;
+  idempotencyKey?: string;
+  onDone?: string;
+  force?: boolean;
 }
 
 export interface ExecResult {
