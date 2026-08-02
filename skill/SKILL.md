@@ -50,18 +50,20 @@ companion spawn --name audit \
   --brief brief.md
 ```
 
-Cheap critique:
+Presets (preferred for common roles):
+
+```sh
+companion spawn --name r1 --preset critic
+companion spawn --name sec --preset auditor
+companion spawn --name fix --preset fixer --cwd .
+companion spawn --name adv --preset advisor
+```
+
+Or freeform:
 
 ```sh
 companion spawn --name critic --lite --format findings \
   --system-prompt "You are a ruthless code reviewer."
-```
-
-Implementer:
-
-```sh
-companion spawn --name fixer --auto low --cwd . \
-  --system-prompt "You implement focused fixes."
 ```
 
 **Autonomy when `--auto` omitted:** `--lite` → read-only; implement-ish role text → `low`; else read-only.
@@ -131,13 +133,15 @@ companion close audit
 
 Default health checks are **cheap** (no model pong).
 
-### doctor
+### doctor / install-skill
 
 ```sh
 companion doctor
+companion install-skill
 ```
 
-Run when install looks wrong or before first use in a new environment.
+`install-skill` copies this skill + contract into `~/.factory/skills/droid-companion/`.  
+Run `doctor` when install looks wrong or before first use in a new environment.
 
 ## Workflow (default)
 

@@ -54,12 +54,13 @@ alias companion='bun /path/to/droid-companion/src/companion.ts'
 
 Main Droid needs the skill that teaches **when/how** to call this CLI.
 
-| Option | How |
-|--------|-----|
-| Copy into Factory skills | `cp skill/SKILL.md ~/.factory/skills/droid-companion/SKILL.md` (and keep contract available — see skill) |
-| Point agents at this repo | Open the repo / set cwd so agents can `Read skill/SKILL.md` |
+```bash
+bun src/companion.ts install-skill
+# or: ./scripts/install-skill.sh
+```
 
-After core lands, prefer documenting a single install path (brew + skill copy script).
+Copies skill + contract into `~/.factory/skills/droid-companion/`.  
+Optional: `--target DIR` for a custom skills root.
 
 ## Verify
 

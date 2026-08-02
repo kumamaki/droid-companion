@@ -12,17 +12,45 @@ Version: `companion --version` → plain text version string (also in doctor JSO
 
 ## Commands (v0.1 surface)
 
-| Command | Role | Scaffold status |
-|---------|------|-----------------|
-| `spawn` | Create named companion | planned (core port) |
-| `send` | Message existing companion | planned (+ `--bg`) |
-| `list` | Roster + sessions | planned |
-| `close` | Untrack companion (see below) | planned |
-| `doctor` | Environment checks | **implemented (stub)** |
-| `status` | Background job status | planned |
-| `result` | Background job result | planned |
+| Command | Role | Status |
+|---------|------|--------|
+| `spawn` | Create named companion | implemented |
+| `send` | Message existing companion (+ `--bg`) | implemented |
+| `list` | Roster + sessions | implemented |
+| `close` | Untrack companion (see below) | implemented |
+| `doctor` | Environment checks | implemented |
+| `install-skill` | Copy skill + contract into Factory skills dir | implemented |
+| `status` | Background job status | implemented |
+| `result` | Background job result (`--wait`) | implemented |
 
 Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadmap.md).
+
+---
+
+## Presets
+
+| Preset | Defaults |
+|--------|----------|
+| `critic` | lite + findings — ruthless code review |
+| `auditor` | lite + findings — security focus |
+| `fixer` | full + `--auto low` — implement focused fixes |
+| `advisor` | full, read-only default — tradeoffs / recommend |
+
+```sh
+companion spawn --name r1 --preset critic
+```
+
+Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps as documented in help.
+
+---
+
+## `install-skill`
+
+```sh
+companion install-skill [--target DIR]
+```
+
+Copies `skill/SKILL.md` and `contract/contract.md` into `~/.factory/skills/droid-companion/` (or `--target`).
 
 ---
 
@@ -73,7 +101,7 @@ companion spawn --name NAME [options]
 | `--format prose\|findings` | Default reply shape (tracked) |
 | `--lite` | Cheap critique profile |
 | `--no-contract` | Skip contract injection |
-| `--preset NAME` | Planned: `critic` \| `auditor` \| `fixer` \| `advisor` |
+| `--preset NAME` | `critic` \| `auditor` \| `fixer` \| `advisor` — fills role/lite/format/auto defaults |
 
 Name already in use → actionable error (name, session id / last used if known, suggest `close` or another name).
 

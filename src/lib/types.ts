@@ -28,9 +28,12 @@ export interface SpawnOptions {
   brief?: string;
   name: string;
   noContract?: boolean;
+  /** true = lite; undefined = let preset / default decide */
   lite?: boolean;
   format?: ReplyFormat;
   role?: string;
+  /** Applied before spawn; explicit flags still win when already set. */
+  preset?: string;
 }
 
 export interface SendOptions {

@@ -5,9 +5,8 @@ Named, multi-turn **companion** sessions for [Factory Droid](https://factory.ai)
 The main Droid (or you) keeps specialists on speed dial: spawn once by **name**, send many turns, close when done. **Agent-first:** JSON for control, files for long content.
 
 ```sh
-companion spawn --name audit --lite --format findings \
-  --system-prompt "You are a ruthless code reviewer."
-companion send audit --message-file ask.md
+companion spawn --name audit --preset critic
+companion send audit --message-file examples/ask.md
 companion list
 companion close audit
 ```
@@ -48,6 +47,14 @@ bun src/companion.ts doctor
 ```
 
 Binary name: **`companion`**. Package / repo: **`droid-companion`**.
+
+```bash
+# From this repo
+bun src/companion.ts install-skill   # → ~/.factory/skills/droid-companion
+# or: ./scripts/install-skill.sh
+```
+
+Examples: [`examples/brief.md`](examples/brief.md) · [`examples/ask.md`](examples/ask.md)
 
 ## Agent loop (v0.1)
 

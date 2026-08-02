@@ -1,5 +1,7 @@
+import { validateName } from "../lib/args";
 import { droidExec } from "../lib/droid-exec";
 import { ensureStateDir, resolveContractPath } from "../lib/paths";
+import { applyPreset, parsePreset } from "../lib/presets";
 import {
   FINDINGS_FORMAT_INSTRUCTION,
   LITE_INSTRUCTION,
@@ -13,14 +15,19 @@ import {
 } from "../lib/prompts";
 import { assertNameAvailable, trackSession } from "../lib/state";
 import type { Profile, SessionRecord, SpawnOptions } from "../lib/types";
-import { validateName } from "../lib/args";
 
 function output(obj: unknown): void {
   console.log(JSON.stringify(obj, null, 2));
 }
 
-export async function cmdSpawn(opts: SpawnOptions): Promise<void> {
+export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
   ensureStateDir();
+
+  const presetName = raw.preset ? parsePreset(raw.preset) : undefined;
+  // Track which fields were explicitly set so preset fills only gaps.
+  // applyPreset already treats undefined as fillable.
+  const opts = presetName ? applyPreset(raw, presetName) : raw;
+
   const name = validateName(opts.name);
   assertNameAvailable(name);
 
@@ -94,6 +101,7 @@ export async function cmdSpawn(opts: SpawnOptions): Promise<void> {
     auto: auto ?? null,
     format,
     profile,
+    preset: presetName ?? null,
     contract: !opts.noContract,
     contractPath: opts.noContract ? null : resolveContractPath(),
     announce: `Companion ready: ${name} (${result.session_id}). Call with: send ${name} "…"`,
