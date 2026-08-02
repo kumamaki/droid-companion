@@ -58,6 +58,8 @@ setup options:
   --yes                  Non-interactive (install skill if missing and safe)
   --skip-skill           Doctor + cheat sheet only
   --target DIR           Skill install directory
+  --json                 Machine output (JSON on stdout; default when non-TTY)
+  --text                 Force human text (default on TTY)
 
 Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
@@ -111,6 +113,8 @@ async function main(): Promise<void> {
           yes: opts.yes === true,
           skipSkill: opts["skip-skill"] === true,
           target: opts.target as string | undefined,
+          json: opts.json === true,
+          text: opts.text === true,
         });
         break;
       }

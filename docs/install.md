@@ -12,8 +12,8 @@ droid-companion doctor   # checks only (JSON)
 # or: bun src/companion.ts setup
 ```
 
-**`setup`** (TTY): runs doctor checks (human summary), offers to install the agent skill, prints a first-commands cheat sheet, then emits a JSON summary on stdout.  
-Flags: `--yes` (non-interactive: install skill if missing and safe), `--skip-skill`, `--target DIR`.
+**`setup`** (TTY): friendly human walkthrough on stdout — doctor, optional skill install, next commands. No JSON wall.  
+Machine/agents: `setup --json` (or non-TTY). Flags: `--yes`, `--skip-skill`, `--target DIR`, `--text`.
 
 **`doctor`** reports PATH, droid version, contract presence, state-dir writability, and **auth presence** (`credentialsPresent` vs `credentialsMissing`). It does **not** live-probe login (`authVerified` stays false).
 

@@ -136,13 +136,13 @@ Default health checks are **cheap** (no model pong).
 ### setup / doctor / install-skill
 
 ```sh
-droid-companion setup              # humans: TTY wizard
-droid-companion setup --yes        # scripts: doctor + safe skill install
+droid-companion setup              # humans: TTY wizard (text on stdout)
+droid-companion setup --yes --json # scripts/agents: non-interactive JSON
 droid-companion doctor             # checks only (JSON)
 droid-companion install-skill      # skill copy only
 ```
 
-**Humans** run `setup` after install. **Agents** use `doctor` / `install-skill` (or `setup --yes`) — do not drive interactive prompts.
+**Humans** run `setup` after install. **Agents** use `doctor` / `install-skill` or `setup --yes --json` — do not drive interactive prompts; do not expect a JSON wall from bare `setup` on a TTY.
 
 `install-skill` copies this skill + contract into `~/.factory/skills/droid-companion/`.  
 Run `doctor` when install looks wrong or before first use in a new environment.

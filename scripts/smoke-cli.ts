@@ -59,7 +59,8 @@ async function main(): Promise<void> {
     assert(doctorJson.version === version.stdout.trim(), "doctor version matches --version");
     console.log(`ok: doctor ok=<${doctorJson.ok}>`);
 
-    const setup = await run(["setup", "--yes", "--skip-skill"]);
+    // non-TTY defaults to machine JSON; --json makes it explicit
+    const setup = await run(["setup", "--yes", "--skip-skill", "--json"]);
     const setupJson = JSON.parse(setup.stdout) as {
       ok: boolean;
       command: string;
@@ -67,8 +68,15 @@ async function main(): Promise<void> {
     };
     assert(setupJson.command === "setup", "setup.command");
     assert(setupJson.skill.action === "skipped", "skip-skill action");
-    assert(setup.stderr.includes("Next commands"), "cheat sheet on stderr");
-    console.log("ok: setup --yes --skip-skill");
+    assert(!setup.stdout.includes("Named multi-turn"), "json mode has no human banner");
+    console.log("ok: setup --yes --skip-skill --json");
+
+    const setupText = await run(["setup", "--yes", "--skip-skill", "--text"]);
+    assert(setupText.stdout.includes("Environment"), "text mode has Environment");
+    assert(setupText.stdout.includes("Next"), "text mode has Next");
+    assert(setupText.stdout.includes("Ready.") || setupText.stdout.includes("Not ready"), "text mode footer");
+    assert(!setupText.stdout.trimStart().startsWith("{"), "text mode is not JSON");
+    console.log("ok: setup --yes --skip-skill --text");
 
     const skillTarget = join(HOME, "skills-out");
     mkdirSync(skillTarget, { recursive: true });

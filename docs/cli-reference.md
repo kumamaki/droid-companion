@@ -48,25 +48,50 @@ Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps
 ## `setup`
 
 ```sh
-droid-companion setup [--yes] [--skip-skill] [--target DIR]
+droid-companion setup [--yes] [--skip-skill] [--target DIR] [--json|--text]
 ```
 
-First-run onboarding for humans (and `--yes` for scripts):
+First-run onboarding. **Human-first on a TTY** (friendly text on stdout, no JSON wall).  
+**Machine mode** when non-TTY or with `--json` (JSON summary on stdout only).
 
-1. Run the same environment checks as `doctor` (human summary on **stderr**).
+1. Same environment checks as `doctor`.
 2. Offer to install the agent skill (TTY prompts), or auto-install when safe with `--yes`.
-3. Print a short cheat sheet of next commands.
-4. Emit a JSON summary on **stdout**.
+3. Short cheat sheet of next commands (human mode).
+4. Exit `0` / `1` from critical checks + skill failure.
 
 | Flag | Effect |
 |------|--------|
 | `--yes` | No prompts. Install skill if missing and safe (refuses legacy `companion.ts` without force). |
-| `--skip-skill` | Doctor + cheat sheet only. |
+| `--skip-skill` | Skip skill install step. |
 | `--target DIR` | Passed through to skill install. |
+| `--json` | Force machine JSON on stdout (no human banner). |
+| `--text` | Force human text even when non-TTY. |
 
-Non-TTY without `--yes`: doctor + cheat sheet only; skill not installed.
+Default: **TTY → text**, **non-TTY → JSON**.  
+Non-TTY without `--yes`: skill not installed (doctor + report only).
 
-Example summary shape:
+Human mode example:
+
+```text
+droid-companion setup 0.1.2
+
+Environment
+  ✓ droid      0.186.0
+  ✓ contract   ~/…/contract.md
+  ✓ state      ~/.local/share/droid-companion
+  ✓ auth       credentials present (not live-verified)
+
+Skill
+  ✓ present     ~/.factory/skills/droid-companion
+
+Next
+  droid-companion spawn --name smoke --preset advisor
+  …
+
+Ready.
+```
+
+Machine summary shape (`--json`):
 
 ```json
 {
@@ -76,7 +101,7 @@ Example summary shape:
   "skill": {
     "action": "installed",
     "targetDir": "/Users/you/.factory/skills/droid-companion",
-    "detail": "Installed skill into <…>"
+    "detail": "…"
   },
   "next": ["droid-companion spawn --name smoke --preset advisor", "…"]
 }
@@ -84,7 +109,7 @@ Example summary shape:
 
 `skill.action`: `installed` · `reinstalled` · `already_present` · `skipped` · `refused_legacy` · `failed`.
 
-Exit `0` when critical doctor checks pass and skill did not fail; `1` otherwise. Declining skill install is not a failure.
+Declining skill install is not a failure.
 
 ---
 
