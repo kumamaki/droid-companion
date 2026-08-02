@@ -7,7 +7,7 @@
 3. For from-source / compile: **[Bun](https://bun.sh)** ≥ 1.1.
 
 ```sh
-companion doctor   # or: bun src/companion.ts doctor
+droid-companion doctor   # or: bun src/companion.ts doctor
 ```
 
 `doctor` reports PATH, droid version, contract presence, state-dir writability, and **auth presence** (`credentialsPresent` vs `credentialsMissing`). It does **not** live-probe login (`authVerified` stays false).
@@ -35,7 +35,7 @@ companion doctor   # or: bun src/companion.ts doctor
 ```bash
 brew tap kumamaki/tap
 brew install droid-companion
-companion doctor
+droid-companion doctor
 ```
 
 Formula: [kumamaki/homebrew-tap](https://github.com/kumamaki/homebrew-tap) → `Formula/droid-companion.rb`  
@@ -46,13 +46,13 @@ After first tag, formula `sha256` must match the GitHub source tarball (see `scr
 
 1. Download the asset for your OS/arch from the [Releases](https://github.com/kumamaki/droid-companion/releases) page.
 2. `chmod +x companion` and put it on `PATH`.
-3. `companion doctor`
+3. `droid-companion doctor`
 
 Build locally:
 
 ```bash
 ./scripts/build-binary.sh
-# → dist/companion
+# → dist/droid-companion
 ```
 
 ## From source (works today)
@@ -87,10 +87,10 @@ If that directory already has a private `companion.ts`, install **refuses** unle
 ## Verify
 
 ```sh
-companion --version
-companion doctor
+droid-companion --version
+droid-companion doctor
 # after core port:
-# companion spawn --name smoke --lite --system-prompt "You reply with pong only."
-# companion send smoke "ping"
-# companion close smoke
+# droid-companion spawn --name smoke --lite --system-prompt "You reply with pong only."
+# droid-companion send smoke "ping"
+# droid-companion close smoke
 ```

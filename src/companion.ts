@@ -35,12 +35,12 @@ function printHelp(): void {
   console.log(`${PACKAGE_NAME} ${VERSION}
 
 Named multi-turn companion sessions for Factory Droid.
-Binary name: companion
+Binary name: droid-companion
 
 Usage:
-  companion <command> [options]
-  companion --help
-  companion --version
+  droid-companion <command> [options]
+  droid-companion --help
+  droid-companion --version
 
 Commands:
   doctor                 Check droid, contract, and state directory
@@ -223,7 +223,7 @@ async function main(): Promise<void> {
         break;
 
       default:
-        die(`Unknown command: <${command}>. Run companion --help.`);
+        die(`Unknown command: <${command}>. Run droid-companion --help.`);
     }
   } catch (err) {
     if (err instanceof DroidExecError) {

@@ -6,7 +6,7 @@ Public CLI that gives Factory Droid **named multi-turn companion sessions**.
 
 | Path | Role |
 |------|------|
-| `src/companion.ts` | CLI entry (`companion`) |
+| `src/companion.ts` | CLI entry (`droid-companion`) |
 | `contract/contract.md` | Injected companion behavior (unless `--no-contract`) |
 | `skill/SKILL.md` | Skill for the **main** Droid (how to call this CLI) |
 | `docs/` | Human + agent docs |
@@ -28,7 +28,7 @@ Requires the **`droid` CLI** on `PATH` (Factory). Companions are `droid exec` se
 5. Notify = job files + optional local `--on-done` only. **No chat push** into main Droid in v0.1.
 6. `--name` required on spawn. No anonymous UUID-first UX.
 7. Recipes (`discuss` / `jury` / `vision`) are post-v0.1.
-8. Binary name: `companion`. Package/repo: `droid-companion`.
+8. Binary name: `droid-companion`. Package/repo: `droid-companion`.
 
 ## State (local, not in git)
 

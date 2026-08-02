@@ -10,7 +10,7 @@ Companions often take longer than a host agent's shell tool timeout (commonly ~6
 
 | Layer | Timeout? | Correct behavior |
 |-------|----------|------------------|
-| `companion` / `droid exec` | **No kill timeout** | Await process exit only; never SIGKILL for “took too long” |
+| `droid-companion` / `droid exec` | **No kill timeout** | Await process exit only; never SIGKILL for “took too long” |
 | Main agent `Execute` / shell | Often yes | Prefer `--bg` for long work |
 | After wait abort | — | **Never re-send** the same ask; use `status` / `result` or the same `--idempotency-key` |
 | “Unstick” temptation | — | **Never kill** companion / `droid` PIDs |
@@ -32,7 +32,7 @@ Companions often take longer than a host agent's shell tool timeout (commonly ~6
 ### Start a job
 
 ```sh
-companion send audit --bg --message-file ask.md
+droid-companion send audit --bg --message-file ask.md
 # optional:
 #   --out /path/to/envelope.json
 #   --response-file /path/to/answer.md
@@ -59,8 +59,8 @@ Content of the ask lives in `ask.md` (content plane), not in argv novels.
 ### Poll
 
 ```sh
-companion status audit
-# or: companion status <jobId>
+droid-companion status audit
+# or: droid-companion status <jobId>
 ```
 
 ```json
@@ -75,8 +75,8 @@ companion status audit
 ### Collect
 
 ```sh
-companion result audit
-companion result audit --wait
+droid-companion result audit
+droid-companion result audit --wait
 ```
 
 - `result` — final send JSON when `done`; error if still running or failed (failed includes error fields).
@@ -109,7 +109,7 @@ If `--response-file` was set, long prose is in that file and `response` may be e
 ## Semantics
 
 - Job metadata + result files live under `$DROID_COMPANION_HOME` or `~/.local/share/droid-companion/jobs/`.
-- Detached work is preferably the same binary (`companion` worker), not a hand-rolled shell string.
+- Detached work is preferably the same binary (`droid-companion` worker), not a hand-rolled shell string.
 - Foreground `send` remains for short consults (cheap reviews, pings).
 - Companion never injects into the main Droid session. The main agent always pulls.
 
@@ -124,6 +124,6 @@ If `--response-file` was set, long prose is in that file and `response` may be e
 
 ## Implementation notes
 
-- Worker: same CLI via `companion _run-job <jobId>` (detached, no kill timeout).
+- Worker: same CLI via `droid-companion _run-job <jobId>` (detached, no kill timeout).
 - Job files: `~/.local/share/droid-companion/jobs/<jobId>.json` (+ `.out.json`).
 - `close --purge` SIGTERMs running workers for that session and removes job files.

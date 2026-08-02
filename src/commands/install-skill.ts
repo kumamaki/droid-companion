@@ -69,7 +69,7 @@ export async function cmdInstallSkill(opts: {
   writeFileSync(
     join(targetDir, "INSTALL_SOURCE.txt"),
     `Installed from <${REPO_ROOT}> at ${new Date().toISOString()}\n` +
-      `Binary: companion (or bun ${join(REPO_ROOT, "src", "companion.ts")})\n` +
+      `Binary: droid-companion (or bun ${join(REPO_ROOT, "src", "companion.ts")})\n` +
       (legacyPresent ? `Legacy companion.ts left in place (force install).\n` : ""),
   );
 
@@ -82,7 +82,7 @@ export async function cmdInstallSkill(opts: {
     forced: opts.force === true,
     warnings: legacyPresent
       ? [
-          "Legacy companion.ts present; public SKILL.md installed with --force. Prefer PATH `companion` from this repo for new work.",
+          "Legacy companion.ts present; public SKILL.md installed with --force. Prefer PATH `droid-companion` from this repo for new work.",
         ]
       : [],
     note: "Main Droid should pick up skill/droid-companion.",

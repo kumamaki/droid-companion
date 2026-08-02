@@ -5,12 +5,12 @@ description: Spawn and converse with named companion droid sessions for second o
 
 # Droid Companion
 
-Named, multi-turn partners via the **`companion`** CLI (wraps `droid exec`).
+Named, multi-turn partners via the **`droid-companion`** CLI (wraps `droid exec`).
 
 **Core product = companions with names.** Recipes (`discuss` / `jury` / `vision`) are later; do not invent them if the installed CLI lacks them.
 
 ```sh
-companion <command> …
+droid-companion <command> …
 # from this repo while developing:
 bun /path/to/droid-companion/src/companion.ts <command> …
 ```
@@ -44,7 +44,7 @@ There is no push channel into the main chat. You call the CLI and pull results.
 **Always** pass `--name` (unique, no spaces).
 
 ```sh
-companion spawn --name audit \
+droid-companion spawn --name audit \
   --system-prompt "You are a senior security auditor. Be concise." \
   --cwd /path/to/project \
   --brief brief.md
@@ -53,16 +53,16 @@ companion spawn --name audit \
 Presets (preferred for common roles):
 
 ```sh
-companion spawn --name r1 --preset critic
-companion spawn --name sec --preset auditor
-companion spawn --name fix --preset fixer --cwd .
-companion spawn --name adv --preset advisor
+droid-companion spawn --name r1 --preset critic
+droid-companion spawn --name sec --preset auditor
+droid-companion spawn --name fix --preset fixer --cwd .
+droid-companion spawn --name adv --preset advisor
 ```
 
 Or freeform:
 
 ```sh
-companion spawn --name critic --lite --format findings \
+droid-companion spawn --name critic --lite --format findings \
   --system-prompt "You are a ruthless code reviewer."
 ```
 
@@ -81,8 +81,8 @@ Keep a one-line **roster** while live:
 Accepts **name** (preferred) or sessionId. Prefer `--message-file` for multi-line asks.
 
 ```sh
-companion send audit --message-file ask.md
-companion send audit --message-file - <<'EOF'
+droid-companion send audit --message-file ask.md
+droid-companion send audit --message-file - <<'EOF'
 1) …
 2) …
 EOF
@@ -99,9 +99,9 @@ Attribute relays: **audit:** …
 Companion has **no internal kill timeout**. Host shell tools often do.
 
 ```sh
-companion send audit --bg --message-file deep.md --idempotency-key deep-1
-companion result audit --wait
-# or: companion status audit && companion result audit
+droid-companion send audit --bg --message-file deep.md --idempotency-key deep-1
+droid-companion result audit --wait
+# or: droid-companion status audit && droid-companion result audit
 ```
 
 Optional:
@@ -118,15 +118,15 @@ Optional:
 4. One in-flight job per name (expect error if already running).
 5. **Never kill** companion / `droid` PIDs to “unstick”.
 6. No expecting push into the main Droid session.
-7. Worker is internal `companion _run-job` (same binary); do not invoke it by hand unless debugging.
+7. Worker is internal `droid-companion _run-job` (same binary); do not invoke it by hand unless debugging.
 
 ### list / close
 
 ```sh
-companion list
-companion list --stale
-companion list --prune
-companion close audit
+droid-companion list
+droid-companion list --stale
+droid-companion list --prune
+droid-companion close audit
 ```
 
 `close` = **untrack** from companion state (not a full guarantee that droid wiped disk session data).
@@ -136,8 +136,8 @@ Default health checks are **cheap** (no model pong).
 ### doctor / install-skill
 
 ```sh
-companion doctor
-companion install-skill
+droid-companion doctor
+droid-companion install-skill
 ```
 
 `install-skill` copies this skill + contract into `~/.factory/skills/droid-companion/`.  

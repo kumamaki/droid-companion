@@ -7,8 +7,8 @@
   Rule: **JSON for verbs/state. Files for paragraphs.**
 - **Not supported as API:** a shared freeform markdown chat log as the only protocol.
 
-Binary: `companion`  
-Version: `companion --version` → plain text version string (also in doctor JSON).
+Binary: `droid-companion`  
+Version: `droid-companion --version` → plain text version string (also in doctor JSON).
 
 ## Commands (v0.1 surface)
 
@@ -37,7 +37,7 @@ Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadm
 | `advisor` | full, read-only default — tradeoffs / recommend |
 
 ```sh
-companion spawn --name r1 --preset critic
+droid-companion spawn --name r1 --preset critic
 ```
 
 Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps as documented in help.
@@ -47,7 +47,7 @@ Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps
 ## `install-skill`
 
 ```sh
-companion install-skill [--target DIR]
+droid-companion install-skill [--target DIR]
 ```
 
 Copies `skill/SKILL.md` and `contract/contract.md` into `~/.factory/skills/droid-companion/` (or `--target`).
@@ -57,7 +57,7 @@ Copies `skill/SKILL.md` and `contract/contract.md` into `~/.factory/skills/droid
 ## `doctor`
 
 ```sh
-companion doctor
+droid-companion doctor
 ```
 
 Example shape:
@@ -88,7 +88,7 @@ Exit `0` if droid/contract/state critical checks pass; `1` otherwise.
 ## `spawn` (spec)
 
 ```sh
-companion spawn --name NAME [options]
+droid-companion spawn --name NAME [options]
 ```
 
 | Flag | Notes |
@@ -123,7 +123,7 @@ Example result shape:
   "format": "findings",
   "profile": "lite",
   "contract": true,
-  "announce": "Companion ready: audit (…). Call with: send audit \"…\""
+  "announce": "Companion ready: audit (…). Call with: droid-companion send audit \"…\""
 }
 ```
 
@@ -132,7 +132,7 @@ Example result shape:
 ## `send` (spec)
 
 ```sh
-companion send <name|sessionId> [message] [options]
+droid-companion send <name|sessionId> [message] [options]
 ```
 
 Prefer **name**. Prefer **`--message-file`** for anything longer than a short line.
@@ -191,7 +191,7 @@ Background accept:
 ## `list` (spec)
 
 ```sh
-companion list [--stale] [--prune] [--deep]
+droid-companion list [--stale] [--prune] [--deep]
 ```
 
 ```json
@@ -224,7 +224,7 @@ With `--stale` / `--prune`, also `stale`, `staleCount`, `pruned`.
 ## `close` (spec)
 
 ```sh
-companion close <name|sessionId> [--purge]
+droid-companion close <name|sessionId> [--purge]
 ```
 
 | Mode | Meaning |
@@ -249,9 +249,9 @@ Does **not** claim to fully delete droid’s own on-disk session unless droid ex
 ## `status` / `result` (spec)
 
 ```sh
-companion status <jobId|name>
-companion result <jobId|name>
-companion result <jobId|name> --wait
+droid-companion status <jobId|name>
+droid-companion result <jobId|name>
+droid-companion result <jobId|name> --wait
 ```
 
 `status`:

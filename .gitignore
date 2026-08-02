@@ -2,9 +2,9 @@
 node_modules/
 dist/
 *.exe
-# local compile artifacts only; do not ignore source named companion.ts
-/companion
-/companion-*
+# local compile artifacts
+/droid-companion
+/droid-companion-*
 
 # Local runtime state (never commit)
 .sessions.json

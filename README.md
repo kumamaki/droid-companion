@@ -5,10 +5,10 @@ Named, multi-turn **companion** sessions for [Factory Droid](https://factory.ai)
 The main Droid (or you) keeps specialists on speed dial: spawn once by **name**, send many turns, close when done. **Agent-first:** JSON for control, files for long content.
 
 ```sh
-companion spawn --name audit --preset critic
-companion send audit --message-file examples/ask.md
-companion list
-companion close audit
+droid-companion spawn --name audit --preset critic
+droid-companion send audit --message-file examples/ask.md
+droid-companion list
+droid-companion close audit
 ```
 
 > **Status:** `0.1.0-dev` — core + background jobs (`send --bg` · `status` · `result --wait` · mutex · idempotency).
@@ -46,7 +46,7 @@ cd droid-companion
 bun src/companion.ts doctor
 ```
 
-Binary name: **`companion`**. Package / repo: **`droid-companion`**.
+Binary name: **`droid-companion`**. Package / repo: **`droid-companion`**.
 
 ```bash
 # From this repo
@@ -58,11 +58,11 @@ Examples: [`examples/brief.md`](examples/brief.md) · [`examples/ask.md`](exampl
 
 ## Agent loop (v0.1)
 
-1. `companion spawn --name <unique> …` — always name companions  
+1. `droid-companion spawn --name <unique> …` — always name companions  
 2. **Announce** the name in the user transcript; keep a one-line roster  
-3. `companion send <name> …` — prefer `--message-file` for long asks  
+3. `droid-companion send <name> …` — prefer `--message-file` for long asks  
 4. Long work → **`send --bg`**, then `result --wait` or `status` / `result` (do **not** re-send after a timeout)  
-5. `companion close <name>` when finished (**untrack**; droid may still keep session data)  
+5. `droid-companion close <name>` when finished (**untrack**; droid may still keep session data)  
 
 Hard rules:
 

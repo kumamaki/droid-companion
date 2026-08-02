@@ -39,11 +39,11 @@ git push origin v0.1.0
 
 ```bash
 ./scripts/build-binary.sh
-# rename for clarity, e.g. companion-darwin-arm64
+# rename for clarity, e.g. droid-companion-darwin-arm64
 gh release create v0.1.0 \
   --title "v0.1.0" \
   --notes "Named multi-turn companions for Droid. See README." \
-  dist/companion#companion-darwin-arm64
+  dist/droid-companion#droid-companion-darwin-arm64
 ```
 
 ## 5. Homebrew formula sha256
@@ -63,6 +63,6 @@ git push origin main
 ```bash
 brew tap kumamaki/tap
 brew install droid-companion
-companion doctor
-companion --version
+droid-companion doctor
+droid-companion --version
 ```

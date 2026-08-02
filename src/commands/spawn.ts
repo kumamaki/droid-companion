@@ -104,6 +104,6 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
     preset: presetName ?? null,
     contract: !opts.noContract,
     contractPath: opts.noContract ? null : resolveContractPath(),
-    announce: `Companion ready: ${name} (${result.session_id}). Call with: send ${name} "…"`,
+    announce: `Companion ready: ${name} (${result.session_id}). Call with: droid-companion send ${name} "…"`,
   });
 }

@@ -1,6 +1,6 @@
 # Agent guide
 
-How the **main** Droid should use `companion`. Humans can follow the same loop.
+How the **main** Droid should use `droid-companion`. Humans can follow the same loop.
 
 ## Interface rule
 
@@ -31,44 +31,44 @@ How the **main** Droid should use `companion`. Humans can follow the same loop.
 audit · security auditor · cwd ~/proj · last just now
 ```
 
-Refresh from `companion list` → `roster` when unsure.
+Refresh from `droid-companion list` → `roster` when unsure.
 
 ## Command patterns
 
 ### Cheap review
 
 ```sh
-companion spawn --name critic --lite --format findings \
+droid-companion spawn --name critic --lite --format findings \
   --system-prompt "You are a ruthless code reviewer."
-companion send critic --message-file ask.md
+droid-companion send critic --message-file ask.md
 ```
 
 ### Companion that edits
 
 ```sh
-companion spawn --name fixer --auto low --cwd . \
+droid-companion spawn --name fixer --auto low --cwd . \
   --system-prompt "You implement focused fixes."
-companion send fixer --message-file task.md
+droid-companion send fixer --message-file task.md
 ```
 
 ### Long work (background)
 
 ```sh
-companion send audit --bg --message-file deep-ask.md --idempotency-key deep-1
+droid-companion send audit --bg --message-file deep-ask.md --idempotency-key deep-1
 # → { jobId, name, pid, outPath, status: "running" }
 
-companion result audit --wait
+droid-companion result audit --wait
 # → final JSON when done (job keeps running if this waiter is cut off)
 
 # or poll:
-companion status audit
-companion result audit
+droid-companion status audit
+droid-companion result audit
 ```
 
 Optional local notify (not chat push):
 
 ```sh
-companion send audit --bg --message-file deep-ask.md \
+droid-companion send audit --bg --message-file deep-ask.md \
   --on-done 'echo done >> /tmp/companion-notify.log'
 ```
 
@@ -87,7 +87,7 @@ companion send audit --bg --message-file deep-ask.md \
 
 | Layer | Timeout? | What to do |
 |-------|----------|------------|
-| `companion` / `droid exec` | **No kill timeout** | Keep it that way |
+| `droid-companion` / `droid exec` | **No kill timeout** | Keep it that way |
 | Main agent shell tool | Often yes (e.g. 60s) | Do not foreground long sends |
 | After wait abort | — | **Never re-send the same message** |
 | Safe retry | — | Same `--idempotency-key` or `status` / `result` |

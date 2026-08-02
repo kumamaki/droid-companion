@@ -3,14 +3,14 @@
 The installable formula for this project lives in the **kumamaki homebrew tap**, not in this repo's CI forever:
 
 - Tap: [kumamaki/homebrew-tap](https://github.com/kumamaki/homebrew-tap)
-- Planned formula name: `droid-companion` (binary: `companion`)
+- Planned formula name: `droid-companion` (binary: `droid-companion`)
 
 ## User install
 
 ```bash
 brew tap kumamaki/tap
 brew install droid-companion
-companion doctor
+droid-companion doctor
 ```
 
 ## When publishing a release

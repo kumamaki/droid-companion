@@ -107,7 +107,7 @@ export function assertNameAvailable(name: string): void {
   throw new Error(
     `Companion name already in use: <${name}> → session <${existing.sessionId}>` +
       (last ? ` lastUsedAt <${last}>` : "") +
-      `. Run: companion close ${name}  — or pick another name.`,
+      `. Run: droid-companion close ${name}  — or pick another name.`,
   );
 }
 

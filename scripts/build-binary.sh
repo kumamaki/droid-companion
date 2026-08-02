@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Build a standalone `companion` binary with Bun compile + ship contract.
+# Build a standalone `droid-companion` binary with Bun compile + ship contract.
 # Usage: ./scripts/build-binary.sh [outfile]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="${1:-"$ROOT/dist/companion"}"
+OUT="${1:-"$ROOT/dist/droid-companion"}"
 mkdir -p "$(dirname "$OUT")"
 SHARE_DIR="$(dirname "$OUT")/share/droid-companion"
 mkdir -p "$SHARE_DIR"
