@@ -1,64 +1,70 @@
 # Release checklist
 
-Agent does **not** push remotes. You run push / tag / brew / gh release.
+## Roles
 
-Automated prep:
+| Who | Tool | Pushes? |
+|-----|------|---------|
+| **You** | `./scripts/ship.sh` | Yes — `main` + tag; formula **commit** only |
+| **You** | `git push` in homebrew-tap | Yes — after ship |
+| **Agent** | `./scripts/release.sh` only | **Never** |
+
+## Happy path (preferred)
+
+1. Bump **`package.json` `version`** (single source; `src/lib/paths.ts` imports it).
+2. Commit on `main` (version + product changes).
+3. From a clean tree:
 
 ```bash
 cd ~/Work/droid-companion
-./scripts/release.sh          # typecheck · lint · test · cli smoke · build
-# ./scripts/release.sh --multi
+./scripts/ship.sh
+# optional:
+# ./scripts/ship.sh --yes
+# ./scripts/ship.sh --with-gh-release
+# ./scripts/ship.sh --tap=$HOME/Work/homebrew-tap
+# ./scripts/ship.sh --dry-run
 ```
 
-## 1. Version
+`ship.sh` will:
 
-Single source: **`package.json` `version`** (imported by `src/lib/paths.ts`).
+1. Run release prep (typecheck · lint · unit · cli smoke · build)
+2. `git push origin main`
+3. Annotated tag `v$VERSION` + push tag
+4. Download GitHub source tarball → sha256
+5. Rewrite `homebrew-tap/Formula/droid-companion.rb` (url / sha256 / version) and **commit**
 
-```bash
-# bump only package.json, e.g. 0.1.2
-bun -e 'import { VERSION } from "./src/lib/paths.ts"; console.log(VERSION)'
-# must match package.json
-```
-
-## 2. Push main + tag
+4. You finish brew:
 
 ```bash
-git push origin main
-git tag -a v0.1.2 -m "v0.1.2: …"
-git push origin v0.1.2
-```
-
-(Use the version you actually bumped.)
-
-## 3. Optional: GH Release assets
-
-```bash
-./scripts/build-binary.sh --multi
-gh release create v0.1.2 \
-  --title "v0.1.2" \
-  --notes "See README." \
-  dist/droid-companion*
-```
-
-Host-only binary is enough if brew builds from source.
-
-## 4. Homebrew formula sha256
-
-```bash
-curl -sL https://github.com/kumamaki/droid-companion/archive/refs/tags/v0.1.2.tar.gz | shasum -a 256
-# paste into ~/Work/homebrew-tap/Formula/droid-companion.rb (version, url, sha256)
-cd ~/Work/homebrew-tap
-git add Formula/droid-companion.rb
-git commit -m "chore: Bump droid-companion to 0.1.2"
-git push origin main
-```
-
-## 5. Install smoke
-
-```bash
-brew update
-brew upgrade droid-companion   # or: brew reinstall droid-companion
-droid-companion setup --yes
+cd ~/Work/homebrew-tap && git push origin main
+brew update && brew upgrade droid-companion
 droid-companion --version
-droid-companion doctor
+droid-companion setup
 ```
+
+Env override: `DROID_COMPANION_HOMEBREW_TAP=/path/to/homebrew-tap`.
+
+## Prep only (agents / no network push)
+
+```bash
+./scripts/release.sh
+./scripts/release.sh --skip-tests
+./scripts/release.sh --multi
+```
+
+## Manual fallback
+
+If you cannot run `ship.sh`:
+
+```bash
+git push origin main
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+curl -sL https://github.com/kumamaki/droid-companion/archive/refs/tags/vX.Y.Z.tar.gz | shasum -a 256
+# edit formula url/sha256/version → commit + push tap
+```
+
+## Notes
+
+- Tags are still required: Homebrew installs from the **tag tarball**, not floating `main`.
+- Automation removes the copy-paste; it does not remove versioned releases.
+- Never force-push tags. Never run `ship.sh` from the agent.

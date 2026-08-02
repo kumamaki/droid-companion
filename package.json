@@ -23,6 +23,7 @@
     "test:cli": "bun scripts/smoke-cli.ts",
     "test:all": "bun run typecheck && bun run lint && bun run test && bun run test:cli",
     "release": "bash scripts/release.sh",
+    "ship": "bash scripts/ship.sh",
     "smoke:classify": "bun scripts/smoke-classify.ts"
   },
   "engines": {

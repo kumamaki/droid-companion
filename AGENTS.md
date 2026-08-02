@@ -58,11 +58,14 @@ bun run test:all
 bun run build       # compile binary
 bun run clean
 ./scripts/release.sh   # prep only; does not push
+# NEVER: ./scripts/ship.sh  — user-only (pushes main+tag, commits brew formula)
 ```
 
 ## Ship notes
 
 - Homebrew formula lives in `kumamaki/homebrew-tap` (see `Formula/README.md`).
+- **User** ships with `./scripts/ship.sh` (see `scripts/release-checklist.md`).
+- **Agent** uses `./scripts/release.sh` only — never `ship.sh`, never push/tag.
 - Do not push remotes from the agent unless the user asks; never force-push.
 
 ## Issue tracking

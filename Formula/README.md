@@ -15,10 +15,15 @@ droid-companion setup
 
 ## When publishing a release
 
-Follow `scripts/release-checklist.md` / `./scripts/release.sh` in this repo:
+Preferred:
 
-1. Bump `package.json` version; tag `vX.Y.Z` and push.
-2. Set `sha256` in `homebrew-tap/Formula/droid-companion.rb` from the GitHub source tarball.
-3. Push the tap.
+```bash
+# in droid-companion (version already bumped + committed on main)
+./scripts/ship.sh
+cd ../homebrew-tap && git push origin main
+```
+
+`ship.sh` pushes main+tag, computes tarball sha256, and **commits** the formula.  
+You still push the tap. Details: `scripts/release-checklist.md`.
 
 This directory is a pointer; the live formula is in the tap.

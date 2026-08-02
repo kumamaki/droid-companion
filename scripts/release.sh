@@ -64,19 +64,10 @@ else
 fi
 
 echo
-echo "=== next (you run; agent does not push) ==="
-echo "1. Commit if needed, then:"
-echo "   git tag -a $TAG -m \"$TAG\""
-echo "   git push origin main && git push origin $TAG"
+echo "=== next ==="
+echo "User ship (push + tag + brew formula commit):"
+echo "  ./scripts/ship.sh"
+echo "  # then: cd ../homebrew-tap && git push origin main"
 echo
-echo "2. Source tarball sha256 for Homebrew:"
-echo "   curl -sL https://github.com/kumamaki/droid-companion/archive/refs/tags/${TAG}.tar.gz | shasum -a 256"
-echo "   # paste into homebrew-tap Formula/droid-companion.rb (url + sha256 + version)"
-echo
-echo "3. Optional GH Release assets:"
-echo "   gh release create $TAG --title \"$TAG\" --notes \"See README / CHANGELOG.\" dist/droid-companion*"
-echo
-echo "4. Install smoke:"
-echo "   brew update && brew upgrade droid-companion   # or reinstall"
-echo "   droid-companion setup --yes"
-echo "   droid-companion --version   # expect $VERSION"
+echo "Agent must not run ship.sh (pushes remotes). Prep-only is this script."
+echo "Manual fallback: scripts/release-checklist.md"
