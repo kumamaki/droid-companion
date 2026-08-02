@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Reject AI co-author / "Generated with …" attribution in commit messages.
+# Does not rewrite the message — fix it and commit again.
+
+set -euo pipefail
+
+msg_file="${1:?commit-msg hook requires a message file}"
+
+if [ ! -f "$msg_file" ]; then
+  printf '\033[31m✗ attribution guard: missing commit message file\033[0m\n' >&2
+  exit 1
+fi
+
+# Ignore comment lines git leaves in the message file.
+body="$(grep -v '^#' "$msg_file" || true)"
+
+matches="$(
+  printf '%s\n' "$body" | grep -E -n \
+    -e '^[[:space:]]*Co-[Aa]uthored-[Bb]y:[[:space:]]*(Claude|factory-droid|Cursor)\b' \
+    -e 'Generated with \[Claude Code\]' \
+    || true
+)"
+
+if [ -z "$matches" ]; then
+  exit 0
+fi
+
+printf '\033[31m✗ attribution guard: AI co-author / generator trailer blocked\033[0m\n' >&2
+printf '  Commit messages must not include Claude, Cursor, or factory-droid attribution.\n' >&2
+printf '  offending lines:\n' >&2
+while IFS= read -r line; do
+  printf '    %s\n' "$line" >&2
+done <<< "$matches"
+printf '  fix: remove those lines from the message, then commit again\n' >&2
+printf '       (do not use --no-verify to bypass this)\n' >&2
+exit 1

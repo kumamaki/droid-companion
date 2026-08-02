@@ -1,0 +1,32 @@
+# Dependencies / build
+node_modules/
+dist/
+*.exe
+companion
+companion-*
+
+# Local runtime state (never commit)
+.sessions.json
+.jobs/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Coverage / caches
+.coverage/
+.cache/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
