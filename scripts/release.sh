@@ -66,7 +66,8 @@ fi
 echo
 echo "=== next ==="
 echo "User ship (push + tag + brew formula commit):"
-echo "  ./scripts/ship.sh"
+echo "  just ship"
+echo "  # or: ./scripts/ship.sh"
 echo "  # then: cd ../homebrew-tap && git push origin main"
 echo
 echo "Agent must not run ship.sh (pushes remotes). Prep-only is this script."

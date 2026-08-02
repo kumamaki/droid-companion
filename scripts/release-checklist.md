@@ -4,9 +4,9 @@
 
 | Who | Tool | Pushes? |
 |-----|------|---------|
-| **You** | `./scripts/ship.sh` | Yes — `main` + tag; formula **commit** only |
+| **You** | `just ship` / `./scripts/ship.sh` | Yes — `main` + tag; formula **commit** only |
 | **You** | `git push` in homebrew-tap | Yes — after ship |
-| **Agent** | `./scripts/release.sh` only | **Never** |
+| **Agent** | `just release` / `./scripts/release.sh` only | **Never** |
 
 ## Happy path (preferred)
 
@@ -16,12 +16,13 @@
 
 ```bash
 cd ~/Work/droid-companion
-./scripts/ship.sh
+just ship
 # optional:
-# ./scripts/ship.sh --yes
-# ./scripts/ship.sh --with-gh-release
-# ./scripts/ship.sh --tap=$HOME/Work/homebrew-tap
-# ./scripts/ship.sh --dry-run
+# just ship --yes
+# just ship --with-gh-release
+# just ship --tap=$HOME/Work/homebrew-tap
+# just ship --dry-run
+# ./scripts/ship.sh   # same as just ship
 ```
 
 `ship.sh` will:

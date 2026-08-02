@@ -47,25 +47,24 @@ Never commit session or job state. Prefer atomic writes + lock when implementing
 
 ## Dev commands
 
+Prefer **`just`** (`justfile`). `bun run …` still works.
+
 ```sh
-bun src/companion.ts --help
-bun src/companion.ts setup --yes --skip-skill
-bun run typecheck   # tsc --noEmit
-bun run lint        # oxlint
-bun run test        # bun:test unit
-bun run test:cli    # help/doctor/setup/list smoke (temp home)
-bun run test:all
-bun run build       # compile binary
-bun run clean
-./scripts/release.sh   # prep only; does not push
-# NEVER: ./scripts/ship.sh  — user-only (pushes main+tag, commits brew formula)
+just                 # list recipes
+just check           # typecheck · lint · unit · cli smoke
+just run -- --help
+just doctor
+just setup --yes --skip-skill
+just build
+just release         # prep only; does not push
+# NEVER: just ship   — user-only (pushes main+tag, commits brew formula)
 ```
 
 ## Ship notes
 
 - Homebrew formula lives in `kumamaki/homebrew-tap` (see `Formula/README.md`).
-- **User** ships with `./scripts/ship.sh` (see `scripts/release-checklist.md`).
-- **Agent** uses `./scripts/release.sh` only — never `ship.sh`, never push/tag.
+- **User** ships with `just ship` / `./scripts/ship.sh` (see `scripts/release-checklist.md`).
+- **Agent** uses `just release` / `./scripts/release.sh` only — never `ship`, never push/tag.
 - Do not push remotes from the agent unless the user asks; never force-push.
 
 ## Issue tracking
