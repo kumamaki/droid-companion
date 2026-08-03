@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { promptsDir, resolveContractPath } from "./paths";
-import type { Profile, ReplyFormat } from "./types";
+import type { ReplyFormat, ToolProfile } from "./types";
 
 export const FINDINGS_FORMAT_INSTRUCTION = [
   "Reply format: FINDINGS.",
@@ -13,7 +13,7 @@ export const FINDINGS_FORMAT_INSTRUCTION = [
 ].join(" ");
 
 export const LITE_INSTRUCTION = [
-  "LITE profile: pure analysis/critique.",
+  "LITE tool profile: pure analysis/critique.",
   "Do not load skills or MCP.",
   "Do not edit files or run mutating commands.",
   "Prefer short, high-signal answers grounded in provided paths/context.",
@@ -89,8 +89,8 @@ export function composeSystemPrompt(parts: Array<string | undefined>): string | 
   return joined || undefined;
 }
 
-export function inferDefaultAuto(roleText?: string, profile?: Profile): string | undefined {
-  if (profile === "lite") return undefined;
+export function inferDefaultAuto(roleText?: string, toolProfile?: ToolProfile): string | undefined {
+  if (toolProfile === "lite") return undefined;
   if (!roleText) return undefined;
   const text = roleText.toLowerCase();
   if (/\b(implement|fix|patch|refactor|write code|edit|ship|code changes?)\b/.test(text)) {

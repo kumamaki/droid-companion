@@ -29,7 +29,7 @@ Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs 
 | **Contract** | `contract/contract.md` injected on spawn (unless `--no-contract`): named specialist relay for the main droid (identity, relay rules, hard stops). Not a full work-style manifesto. |
 | **Role** | `--system-prompt` / `--role` specialist flavor **on top** of the contract (how hard to work, tone, domain). |
 | **Brief** | Shared brief file (Goal · Constraints · Artifacts · Ask). Path is tracked; content is not inlined into every argv. |
-| **Profile** | `full` (default) or `lite` (cheap critique: no heavy skills/MCP/mutators). |
+| **Tool profile** | `full` (default) or `lite` (cheap critique: no heavy skills/MCP/mutators). CLI: `--lite`. Config: `tool_profile`. Not the same as named config `--profile`. |
 | **Format** | `prose` (default) or `findings` (`severity` · `path:line` · claim). |
 | **Jobs** | Background sends (`--bg`) so callers never need infinite foreground waits. |
 
@@ -56,11 +56,11 @@ See [examples/config.toml](../examples/config.toml) and [cli-reference](cli-refe
 
 | Signal | Default |
 |--------|---------|
-| `--lite` | read-only (no `--auto`) |
+| `--lite` / `tool_profile = "lite"` | read-only (no `--auto`) |
 | role text mentions implement / fix / patch / refactor / write code / … | `--auto low` |
 | otherwise (review / consult) | read-only |
 
-Tracked on the session for later sends: `cwd`, `auto`, `brief`, `format`, `profile`, `role`, `name`.
+Tracked on the session for later sends: `cwd`, `auto`, `brief`, `format`, `toolProfile`, `role`, `name`.
 
 ## Background and notify (summary)
 

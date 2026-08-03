@@ -19,7 +19,7 @@ import {
   writeSystemPromptFile,
 } from "../lib/prompts";
 import { assertNameAvailable, trackSession } from "../lib/state";
-import type { Profile, SessionRecord, SpawnOptions } from "../lib/types";
+import type { SessionRecord, SpawnOptions, ToolProfile } from "../lib/types";
 
 function output(obj: unknown): void {
   console.log(JSON.stringify(obj, null, 2));
@@ -43,10 +43,10 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
 
   const cwd = resolveCwd(opts.cwd);
   const briefPath = opts.brief ? resolveBriefPath(opts.brief, cwd) : undefined;
-  const profile: Profile = opts.lite === true ? "lite" : "full";
+  const toolProfile: ToolProfile = opts.lite === true ? "lite" : "full";
   const format = opts.format ?? "prose";
   const role = opts.role ?? opts.systemPrompt;
-  const auto = opts.auto ?? inferDefaultAuto(role, profile);
+  const auto = opts.auto ?? inferDefaultAuto(role, toolProfile);
 
   const args: string[] = [];
   if (opts.model) args.push("--model", opts.model);
@@ -55,12 +55,12 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
   if (opts.reasoningEffort) args.push("--reasoning-effort", opts.reasoningEffort);
   args.push("--tag", opts.tag ?? name);
 
-  if (profile === "lite") {
+  if (toolProfile === "lite") {
     args.push("--disabled-tools", "Task,GenerateDroid,Skill");
   }
 
   const contractBlock = opts.noContract ? undefined : loadContractText();
-  const liteBlock = profile === "lite" ? LITE_INSTRUCTION : undefined;
+  const liteBlock = toolProfile === "lite" ? LITE_INSTRUCTION : undefined;
   const formatBlock = format === "findings" ? FINDINGS_FORMAT_INSTRUCTION : undefined;
   const identityLine = `Your companion name is ${name}. Introduce yourself by that name and keep using it.`;
   const rolePrompt = composeSystemPrompt([
@@ -91,7 +91,7 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
     cwd,
     auto,
     format,
-    profile,
+    toolProfile,
     role,
     lastResponse: result.result ?? "",
     lastDurationMs: result.duration_ms,
@@ -110,7 +110,7 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
     cwd: cwd ?? null,
     auto: auto ?? null,
     format,
-    profile,
+    toolProfile,
     preset: presetName ?? null,
     configProfile: raw.configProfile ?? null,
     contract: !opts.noContract,

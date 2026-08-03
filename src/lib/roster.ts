@@ -9,7 +9,7 @@ export interface RosterEntry {
   role: string | null;
   cwd: string | null;
   auto: string | null;
-  profile: string | null;
+  toolProfile: string | null;
   format: string | null;
   job: "idle" | "running";
   jobId: string | null;
@@ -103,7 +103,7 @@ export function buildRosterEntry(
     role: session.role ?? null,
     cwd: session.cwd ?? null,
     auto: session.auto ?? null,
-    profile: session.profile ?? null,
+    toolProfile: session.toolProfile ?? session.profile ?? null,
     format: session.format ?? null,
     job: jobRunning ? "running" : "idle",
     jobId: jobRunning ? (runningJob?.jobId ?? null) : null,

@@ -1,4 +1,4 @@
-import type { Profile, ReplyFormat, SpawnOptions } from "./types";
+import type { ReplyFormat, SpawnOptions, ToolProfile } from "./types";
 
 export type PresetName = "critic" | "auditor" | "fixer" | "advisor";
 
@@ -11,7 +11,7 @@ interface PresetDef {
   format: ReplyFormat;
   /** When set, forces --auto; undefined means infer / read-only. */
   auto?: string;
-  profile: Profile;
+  toolProfile: ToolProfile;
 }
 
 const PRESETS: Record<PresetName, PresetDef> = {
@@ -21,7 +21,7 @@ const PRESETS: Record<PresetName, PresetDef> = {
       "You are a ruthless code reviewer. Prefer concrete findings with paths and severity. Challenge weak designs. No fluff.",
     lite: true,
     format: "findings",
-    profile: "lite",
+    toolProfile: "lite",
   },
   auditor: {
     name: "auditor",
@@ -29,7 +29,7 @@ const PRESETS: Record<PresetName, PresetDef> = {
       "You are a senior security auditor. Focus on auth, injection, secrets, TOCTOU, privilege boundaries, and data exposure. Be precise and skeptical.",
     lite: true,
     format: "findings",
-    profile: "lite",
+    toolProfile: "lite",
   },
   fixer: {
     name: "fixer",
@@ -38,7 +38,7 @@ const PRESETS: Record<PresetName, PresetDef> = {
     lite: false,
     format: "prose",
     auto: "low",
-    profile: "full",
+    toolProfile: "full",
   },
   advisor: {
     name: "advisor",
@@ -46,7 +46,7 @@ const PRESETS: Record<PresetName, PresetDef> = {
       "You are a pragmatic senior engineer advisor. Clarify tradeoffs, recommend a path, and push back on bad framing. Prefer analysis over edits unless asked to implement.",
     lite: false,
     format: "prose",
-    profile: "full",
+    toolProfile: "full",
   },
 };
 

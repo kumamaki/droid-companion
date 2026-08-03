@@ -1,5 +1,6 @@
 export type ReplyFormat = "prose" | "findings";
-export type Profile = "full" | "lite";
+/** Tool surface: full tools vs cheap critique (disabled heavy tools). */
+export type ToolProfile = "full" | "lite";
 
 export interface SessionRecord {
   sessionId: string;
@@ -10,7 +11,13 @@ export interface SessionRecord {
   cwd?: string;
   auto?: string;
   format?: ReplyFormat;
-  profile?: Profile;
+  /** Tool surface full|lite. Prefer this over legacy `profile` if both ever appear. */
+  toolProfile?: ToolProfile;
+  /**
+   * @deprecated Legacy session field for tool surface; read as toolProfile.
+   * Kept so old sessions.json still loads.
+   */
+  profile?: ToolProfile;
   role?: string;
   lastResponse?: string;
   /** Path from last --response-file send, if any. */
@@ -30,7 +37,7 @@ export interface SpawnOptions {
   brief?: string;
   name: string;
   noContract?: boolean;
-  /** true = lite; undefined = let preset / default decide */
+  /** true = lite tool surface; undefined = let preset / default decide */
   lite?: boolean;
   format?: ReplyFormat;
   role?: string;
@@ -38,7 +45,7 @@ export interface SpawnOptions {
   preset?: string;
   /**
    * Named config profile (`[profiles.<name>]` in config.toml).
-   * Not the tool-surface full|lite — that is `lite` / session `profile`.
+   * Not the tool surface — that is `lite` / `toolProfile`.
    */
   configProfile?: string;
 }

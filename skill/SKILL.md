@@ -32,6 +32,8 @@ Do not dump raw JSON to the user unless asked; relay by **name**.
 | **Companion** | Long-lived named session. Spawn once → many `send`s → `close` when done. |
 | **Contract** | Injected on spawn (unless `--no-contract`): named specialist relay (identity, main-droid relationship, hard stops). |
 | **Role** | `--system-prompt` / `--role` on top of the contract (domain + how hard to push). |
+| **Tool profile** | `full` \| `lite` (`--lite` / config `tool_profile`) — tool surface, not named config. |
+| **Named profile** | `spawn --profile NAME` → `[profiles.NAME]` spawn bundle in config.toml. |
 | **Brief** | Shared brief file path tracked across sends. |
 | **Jobs** | `send --bg` → job files → `status` / `result` / `result --wait`. |
 
@@ -185,8 +187,8 @@ User phrases: “ask audit about X”, “second opinion”, “keep that review
 2. After spawn: announce + roster in the user transcript.
 3. Multi-turn by default; close only when done.
 4. Batch questions; short positional pings ok; `--message-file` for long content.
-5. `--lite` + `--format findings` for pure second opinions.
-6. Full profile + `--auto low` when the companion must edit.
+5. `--lite` (lite tool profile) + `--format findings` for pure second opinions.
+6. Full tool profile + `--auto low` when the companion must edit.
 7. Relay by name; no raw JSON dumps unless asked.
 8. Long work → `--bg`; never retry a timed-out send without key/status.
 9. JSON control + file content — no chat.md protocol.

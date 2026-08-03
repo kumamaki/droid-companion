@@ -47,9 +47,13 @@ droid-companion config show
 **Precedence:** CLI flags > named `--profile` > `[defaults]` > built-ins.  
 Missing file = built-ins. Invalid TOML/schema = hard fail (doctor `configOk: false`).
 
-**Naming:** config `profile = "lite"|"full"` is the **tool surface**.  
-CLI `--profile NAME` is a **named config bundle** (`[profiles.NAME]`).  
-Built-in `--preset critic|…` is separate and can be set inside a bundle.
+**Naming (do not mix these up):**
+
+| Term | Meaning |
+|------|---------|
+| `tool_profile` / `--lite` | Tool surface: `full` \| `lite` |
+| `--profile NAME` / `[profiles.NAME]` | Named spawn **bundle** from config |
+| `--preset critic\|…` | Built-in role shortcut (can sit inside a bundle) |
 
 Example: [examples/config.toml](../examples/config.toml).
 
@@ -203,7 +207,7 @@ droid-companion spawn --name NAME [options]
 | `--reasoning-effort L` | Passed through to droid |
 | `--brief PATH` | Shared brief file (tracked absolute path) |
 | `--format prose\|findings` | Default reply shape (tracked) |
-| `--lite` | Cheap critique profile |
+| `--lite` | Cheap critique **tool profile** (disables heavy tools) |
 | `--no-contract` | Skip contract injection |
 | `--preset NAME` | `critic` \| `auditor` \| `fixer` \| `advisor` — fills role/lite/format/auto defaults |
 | `--profile NAME` | Named config profile from `config.toml` `[profiles.NAME]` |
@@ -222,7 +226,7 @@ Example result shape:
   "cwd": "/path",
   "auto": null,
   "format": "findings",
-  "profile": "lite",
+  "toolProfile": "lite",
   "contract": true,
   "announce": "Companion ready: audit (…). Call with: droid-companion send audit \"…\""
 }
@@ -321,7 +325,7 @@ droid-companion list [--stale] [--prune] [--older-than DUR] [--deep]
       "role": "security auditor",
       "cwd": "/path",
       "auto": null,
-      "profile": "lite",
+      "toolProfile": "lite",
       "format": "findings",
       "job": "idle",
       "jobId": null,

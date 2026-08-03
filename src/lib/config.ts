@@ -4,7 +4,7 @@ import { join } from "path";
 import { parsePreset, type PresetName } from "./presets";
 import { DEFAULT_STALE_MS, parseDurationMs } from "./roster";
 import { MAX_POSITIONAL_MESSAGE_CHARS } from "./prompts";
-import type { Profile, ReplyFormat, SpawnOptions } from "./types";
+import type { ReplyFormat, SpawnOptions, ToolProfile } from "./types";
 
 /** Built-in defaults when config is missing or a key is omitted. */
 export const BUILTIN_STALE_AFTER = "7d";
@@ -13,8 +13,8 @@ export const BUILTIN_MAX_POSITIONAL_CHARS = MAX_POSITIONAL_MESSAGE_CHARS;
 export type ConfigSpawnBundle = {
   preset?: PresetName;
   format?: ReplyFormat;
-  /** Tool surface: full | lite */
-  toolProfile?: Profile;
+  /** Tool surface: full | lite (TOML: tool_profile) */
+  toolProfile?: ToolProfile;
   systemPrompt?: string;
   role?: string;
   model?: string;
@@ -79,7 +79,7 @@ function parseFormatField(value: unknown, label: string): ReplyFormat | undefine
   throw new Error(`Config ${label} must be prose|findings`);
 }
 
-function parseToolProfile(value: unknown, label: string): Profile | undefined {
+function parseToolProfile(value: unknown, label: string): ToolProfile | undefined {
   if (value === undefined || value === null) return undefined;
   if (value === "full" || value === "lite") return value;
   throw new Error(`Config ${label} must be full|lite (tool surface)`);
@@ -93,7 +93,11 @@ function parseSpawnBundle(raw: RawTable, label: string): ConfigSpawnBundle {
     optionalString(raw.systemPrompt, `${label}.systemPrompt`);
   const role = optionalString(raw.role, `${label}.role`);
   const format = parseFormatField(raw.format, `${label}.format`);
-  const toolProfile = parseToolProfile(raw.profile, `${label}.profile`);
+  // Canonical: tool_profile. Legacy alias: profile (same full|lite meaning).
+  const toolProfile =
+    parseToolProfile(raw.tool_profile, `${label}.tool_profile`) ??
+    parseToolProfile(raw.toolProfile, `${label}.toolProfile`) ??
+    parseToolProfile(raw.profile, `${label}.profile`);
   const noContract =
     optionalBool(raw.no_contract, `${label}.no_contract`) ??
     optionalBool(raw.noContract, `${label}.noContract`);

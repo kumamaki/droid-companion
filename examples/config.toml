@@ -12,7 +12,7 @@ stale_after = "7d"
 # Optional sticky spawn defaults (omit any key to keep built-ins)
 # preset = "advisor"          # critic | auditor | fixer | advisor
 # format = "prose"            # prose | findings
-# profile = "full"            # tool surface: full | lite
+# tool_profile = "full"       # tool surface: full | lite  (not the same as [profiles.*])
 # cwd = "~/Work/current"
 # brief = "brief.md"
 
@@ -24,7 +24,7 @@ max_positional_chars = 4000
 [profiles.review]
 preset = "critic"
 format = "findings"
-profile = "lite"
+tool_profile = "lite"
 
 [profiles.fix]
 preset = "fixer"
@@ -35,4 +35,4 @@ auto = "low"
 # [profiles.api]
 # system_prompt = "You review public API design. Prefer stability and clarity."
 # format = "findings"
-# profile = "lite"
+# tool_profile = "lite"

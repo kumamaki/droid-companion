@@ -31,14 +31,14 @@ describe("parseConfigObject", () => {
           stale_after: "24h",
           preset: "advisor",
           format: "prose",
-          profile: "full",
+          tool_profile: "full",
           send: { max_positional_chars: 100 },
         },
         profiles: {
           review: {
             preset: "critic",
             format: "findings",
-            profile: "lite",
+            tool_profile: "lite",
             system_prompt: "be mean",
           },
         },
@@ -53,6 +53,14 @@ describe("parseConfigObject", () => {
     expect(cfg.profiles.review.preset).toBe("critic");
     expect(cfg.profiles.review.toolProfile).toBe("lite");
     expect(cfg.profiles.review.systemPrompt).toBe("be mean");
+  });
+
+  test("legacy profile= still means tool_profile", () => {
+    const cfg = parseConfigObject(
+      { defaults: { profile: "lite" } },
+      null,
+    );
+    expect(cfg.defaults.toolProfile).toBe("lite");
   });
 
   test("rejects bad format / stale / profile name", () => {
@@ -87,7 +95,7 @@ preset = "fixer"
 
 [profiles.review]
 preset = "critic"
-profile = "lite"
+tool_profile = "lite"
 `,
     );
     const cfg = loadConfig(path);
@@ -111,14 +119,14 @@ describe("mergeSpawnOptions", () => {
       defaults: {
         preset: "advisor",
         format: "prose",
-        profile: "full",
+        tool_profile: "full",
         cwd: "/default",
       },
       profiles: {
         review: {
           preset: "critic",
           format: "findings",
-          profile: "lite",
+          tool_profile: "lite",
           system_prompt: "reviewer",
         },
       },
