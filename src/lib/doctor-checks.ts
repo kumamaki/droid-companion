@@ -161,7 +161,7 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
     },
     notes: [
       "ok:true does not mean auth is verified — see authStatus / authVerified.",
-      "Config: ~/.config/droid-companion/config.toml (optional). Override with DROID_COMPANION_CONFIG.",
+      "Config: ~/.config/droid-companion/config.toml (created on first load if missing). Override with DROID_COMPANION_CONFIG.",
       "Background: send --bg · status · result --wait · mutex · idempotency-key · --on-done.",
       "Companion never applies an internal kill timeout to droid exec.",
     ],

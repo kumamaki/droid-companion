@@ -58,7 +58,7 @@ droid-companion spawn --name api --role "You review public API design only." \
   --tool-profile lite --format findings
 ```
 
-Add your own packages in config:
+First load creates `~/.config/droid-companion/config.toml` if it is missing (starter defaults only). Edit it to add packages:
 
 ```toml
 # ~/.config/droid-companion/config.toml
@@ -73,8 +73,8 @@ extends = "fixer"
 ```
 
 ```sh
-droid-companion spawn --name r1 --persona review
 droid-companion config show
+droid-companion spawn --name r1 --persona review
 ```
 
 ## Interface

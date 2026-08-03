@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { dirname, join } from "path";
 import {
   getBuiltinPersona,
   mergePersonaPackage,
@@ -22,6 +22,56 @@ import type {
 export const BUILTIN_STALE_AFTER = "7d";
 export const BUILTIN_MAX_POSITIONAL_CHARS = MAX_POSITIONAL_MESSAGE_CHARS;
 
+/**
+ * Written once when the config path does not exist.
+ * Never overwrites an existing file.
+ */
+export const DEFAULT_CONFIG_TOML = `# droid-companion config
+# Path: ~/.config/droid-companion/config.toml
+# Override: DROID_COMPANION_CONFIG=/path/to/config.toml
+#
+# Precedence: CLI flags > persona package > [defaults] > built-ins
+# This file is created on first use if missing. Edit freely.
+#
+# Vocabulary:
+#   persona       sealed package (role + tool_profile + format + auto)
+#   tool_profile  full | lite  (tool surface)
+#   format        prose | findings  (reply shape)
+#   --role        full role replacement (does not stack on persona role)
+
+[defaults]
+# list --stale / --prune threshold when --older-than is omitted
+stale_after = "7d"
+
+# Optional sticky when spawn omits --persona:
+# persona = "advisor"
+# tool_profile = "full"
+# format = "prose"
+# cwd = "~/Work/current"
+# brief = "brief.md"
+
+[defaults.send]
+# Max chars for positional send messages; longer → --message-file
+max_positional_chars = 4000
+
+# Built-in personas (no config needed): critic | auditor | fixer | advisor
+#   droid-companion spawn --name r1 --persona critic
+#
+# User personas:
+# [personas.review]
+# role = """
+# You are a ruthless API reviewer.
+# Prefer concrete findings with paths and severity.
+# """
+# tool_profile = "lite"
+# format = "findings"
+#
+# Fork a built-in:
+# [personas.fix]
+# extends = "fixer"
+# cwd = "."
+`;
+
 /** Sticky defaults that are not a full persona. */
 export type ConfigDefaults = {
   /** Default persona name when spawn omits --persona */
@@ -40,6 +90,8 @@ export type ConfigDefaults = {
 export type CompanionConfig = {
   path: string | null;
   exists: boolean;
+  /** True when this load wrote DEFAULT_CONFIG_TOML because the path was missing. */
+  created: boolean;
   staleAfter: string;
   staleAfterMs: number;
   maxPositionalChars: number;
@@ -218,16 +270,71 @@ function parsePersonaTable(
   };
 }
 
-function emptyConfig(path: string | null, exists: boolean): CompanionConfig {
+function emptyConfig(
+  path: string | null,
+  exists: boolean,
+  created = false,
+): CompanionConfig {
   return {
     path,
     exists,
+    created,
     staleAfter: BUILTIN_STALE_AFTER,
     staleAfterMs: DEFAULT_STALE_MS,
     maxPositionalChars: BUILTIN_MAX_POSITIONAL_CHARS,
     defaults: {},
     personas: {},
   };
+}
+
+/** Write starter config if missing. Never overwrites an existing path. */
+export function materializeDefaultConfig(path: string): boolean {
+  if (existsSync(path)) return false;
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    // wx: fail if a race created the file between exists check and write
+    writeFileSync(path, DEFAULT_CONFIG_TOML, { flag: "wx" });
+    return true;
+  } catch (err) {
+    // EEXIST from race → treat as already present
+    if (err && typeof err === "object" && "code" in err && err.code === "EEXIST") {
+      return false;
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to create default config <${path}>: ${msg}`, {
+      cause: err,
+    });
+  }
+}
+
+function parseConfigFile(
+  path: string,
+  created: boolean,
+): CompanionConfig {
+  let text: string;
+  try {
+    text = readFileSync(path, "utf-8");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to read config <${path}>: ${msg}`, { cause: err });
+  }
+  if (!text.trim()) {
+    return emptyConfig(path, true, created);
+  }
+  let parsed: unknown;
+  try {
+    parsed = Bun.TOML.parse(text);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Invalid TOML in config <${path}>: ${msg}`, { cause: err });
+  }
+  try {
+    const cfg = parseConfigObject(parsed, path);
+    return { ...cfg, created };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`${msg} (config <${path}>)`, { cause: err });
+  }
 }
 
 function parsePersonaMap(
@@ -319,6 +426,7 @@ export function parseConfigObject(
   return {
     path,
     exists: true,
+    created: false,
     staleAfter,
     staleAfterMs,
     maxPositionalChars,
@@ -327,34 +435,22 @@ export function parseConfigObject(
   };
 }
 
-/** Load config from disk. Missing file → built-ins. Bad TOML/schema → throws. */
+/**
+ * Load config from disk.
+ * Missing file → write DEFAULT_CONFIG_TOML once, then load it.
+ * Empty file → built-ins in memory (does not overwrite).
+ * Bad TOML/schema → throws.
+ */
 export function loadConfig(path: string = configPath()): CompanionConfig {
+  let created = false;
   if (!existsSync(path)) {
-    return emptyConfig(path, false);
+    created = materializeDefaultConfig(path);
   }
-  let text: string;
-  try {
-    text = readFileSync(path, "utf-8");
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to read config <${path}>: ${msg}`, { cause: err });
+  if (!existsSync(path)) {
+    // Should not happen after materialize; degrade to memory defaults
+    return emptyConfig(path, false, created);
   }
-  if (!text.trim()) {
-    return emptyConfig(path, true);
-  }
-  let parsed: unknown;
-  try {
-    parsed = Bun.TOML.parse(text);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Invalid TOML in config <${path}>: ${msg}`, { cause: err });
-  }
-  try {
-    return parseConfigObject(parsed, path);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`${msg} (config <${path}>)`, { cause: err });
-  }
+  return parseConfigFile(path, created);
 }
 
 /**

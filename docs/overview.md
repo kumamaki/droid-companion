@@ -40,13 +40,14 @@ Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs 
 
 **Recipes (later):** multi-agent one-shots — `discuss` / `jury` / `vision`. Prefer `send --images` over a vision verb.
 
-## Config (optional)
+## Config
 
 ```
 ~/.config/droid-companion/config.toml
 ```
 
-Override path: `DROID_COMPANION_CONFIG`. Missing file is fine.
+Override path: `DROID_COMPANION_CONFIG`.  
+**First load creates the file** with starter defaults if it is missing (never overwrites an existing file).
 
 Sticky **`[defaults]`** + user **`[personas.NAME]`**.  
 Precedence: **CLI > persona package > `[defaults]` > built-ins**.

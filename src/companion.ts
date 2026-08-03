@@ -98,7 +98,7 @@ Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
   Short pings may be positional; long content must use --message-file.
   No internal kill timeout. Long work: send --bg → status / result --wait.
-  Optional config: ~/.config/droid-companion/config.toml
+  Config: ~/.config/droid-companion/config.toml (created on first load if missing)
 
 spawn options:
   --name NAME (required)

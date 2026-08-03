@@ -1,9 +1,12 @@
-# Optional droid-companion config
-# Install: copy to ~/.config/droid-companion/config.toml
-# Override path: DROID_COMPANION_CONFIG=/path/to/config.toml
+# droid-companion config (example / reference)
+# Default path: ~/.config/droid-companion/config.toml
+# Override: DROID_COMPANION_CONFIG=/path/to/config.toml
+#
+# First load creates this path automatically if missing
+# (same starter as src/lib/config.ts DEFAULT_CONFIG_TOML).
+# This repo file can include extra sample personas for copy-paste.
 #
 # Precedence: CLI flags > persona package > [defaults] > built-ins
-# Missing file is fine — built-in defaults apply.
 #
 # Vocabulary:
 #   persona       sealed package (role + tool_profile + format + auto)

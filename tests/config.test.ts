@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "fs";
+import { existsSync, mkdtempSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -106,14 +106,23 @@ describe("parseConfigObject", () => {
 });
 
 describe("loadConfig", () => {
-  test("missing file is ok", () => {
-    const cfg = loadConfig(join(tmpdir(), "no-such-droid-companion-config.toml"));
-    expect(cfg.exists).toBe(false);
-    expect(cfg.staleAfter).toBe("7d");
+  test("missing file is materialized once", () => {
+    const dir = mkdtempSync(join(tmpdir(), "dc-cfg-miss-"));
+    const path = join(dir, "nested", "config.toml");
+    const first = loadConfig(path);
+    expect(first.exists).toBe(true);
+    expect(first.created).toBe(true);
+    expect(first.staleAfter).toBe("7d");
+    expect(existsSync(path)).toBe(true);
+
+    const second = loadConfig(path);
+    expect(second.exists).toBe(true);
+    expect(second.created).toBe(false);
+    expect(second.staleAfterMs).toBe(7 * 86_400_000);
   });
 
-  test("reads real TOML file", () => {
-    const dir = mkdtempSync(join(tmpdir(), "dc-cfg-"));
+  test("does not overwrite existing file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "dc-cfg-keep-"));
     const path = join(dir, "config.toml");
     writeFileSync(
       path,
@@ -128,6 +137,7 @@ extends = "critic"
     );
     const cfg = loadConfig(path);
     expect(cfg.exists).toBe(true);
+    expect(cfg.created).toBe(false);
     expect(cfg.staleAfterMs).toBe(30 * 60_000);
     expect(cfg.defaults.persona).toBe("fixer");
     expect(resolvePersona(cfg, "review").format).toBe("findings");

@@ -23,6 +23,7 @@ Machine/agents: `setup --json` (or non-TTY). Flags: `--yes`, `--skip-skill`, `--
 |-----|---------|
 | `DROID_BIN` | Path to `droid` if not on PATH |
 | `DROID_COMPANION_HOME` | State dir (default `~/.local/share/droid-companion`) |
+| `DROID_COMPANION_CONFIG` | Config TOML path (default `~/.config/droid-companion/config.toml`; created on first load if missing) |
 | `DROID_COMPANION_CONTRACT` | Override path to `contract.md` |
 | `FACTORY_API_KEY` | Optional; same as host Droid |
 

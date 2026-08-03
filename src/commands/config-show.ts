@@ -11,6 +11,7 @@ export async function cmdConfigShow(): Promise<void> {
   output({
     path: config.path,
     exists: config.exists,
+    created: config.created,
     staleAfter: config.staleAfter,
     staleAfterMs: config.staleAfterMs,
     maxPositionalChars: config.maxPositionalChars,

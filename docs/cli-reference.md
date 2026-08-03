@@ -31,11 +31,14 @@ Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadm
 
 ## Config
 
-Optional TOML at `~/.config/droid-companion/config.toml`  
+TOML at `~/.config/droid-companion/config.toml`  
 (`DROID_COMPANION_CONFIG` overrides the path).
+
+First command that loads config **creates** the file with starter defaults if it is missing. Existing files are never overwritten.
 
 ```sh
 droid-companion config show
+# → path, exists, created (true only on the load that wrote the file), …
 ```
 
 | Section | Role |
@@ -45,7 +48,7 @@ droid-companion config show
 | `[personas.<name>]` | User persona package → `spawn --persona <name>` |
 
 **Precedence:** CLI flags > persona package > `[defaults]` > built-ins.  
-Missing file = built-ins. Invalid TOML/schema = hard fail (doctor `configOk: false`).
+Invalid TOML/schema = hard fail (doctor `configOk: false`).
 
 Legacy `[profiles.*]` / `preset=` / bare `profile=full|lite` still load for one transition window.
 

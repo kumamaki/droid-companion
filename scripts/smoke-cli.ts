@@ -3,7 +3,7 @@
  * CLI smoke without live droid exec (no spawn/send to models).
  * Uses a temp DROID_COMPANION_HOME so it never touches real session state.
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -24,6 +24,8 @@ async function run(
     env: {
       ...process.env,
       DROID_COMPANION_HOME: HOME,
+      // Keep auto-materialized config inside the smoke temp dir
+      DROID_COMPANION_CONFIG: join(HOME, "config.toml"),
     },
     stdout: "pipe",
     stderr: "pipe",
@@ -57,6 +59,11 @@ async function main(): Promise<void> {
     const doctorJson = JSON.parse(doctor.stdout) as { ok: boolean; version: string };
     assert(typeof doctorJson.ok === "boolean", "doctor.ok boolean");
     assert(doctorJson.version === version.stdout.trim(), "doctor version matches --version");
+    // doctor loads config → materializes default config.toml under smoke home
+    assert(
+      existsSync(join(HOME, "config.toml")),
+      "doctor should create config.toml via loadConfig",
+    );
     console.log(`ok: doctor ok=<${doctorJson.ok}>`);
 
     // non-TTY defaults to machine JSON; --json makes it explicit
@@ -98,11 +105,17 @@ async function main(): Promise<void> {
     const cfgShow = await run(["config", "show"]);
     const cfgJson = JSON.parse(cfgShow.stdout) as {
       exists: boolean;
+      created: boolean;
       staleAfter: string;
       maxPositionalChars: number;
+      path: string;
     };
-    assert(cfgJson.exists === false || typeof cfgJson.staleAfter === "string", "config show shape");
+    // File was already created by doctor; this load must not rewrite it
+    assert(cfgJson.exists === true, "config present");
+    assert(cfgJson.created === false, "later load does not re-create");
+    assert(typeof cfgJson.staleAfter === "string", "config show shape");
     assert(typeof cfgJson.maxPositionalChars === "number", "config maxPositionalChars");
+    assert(cfgJson.path.includes(HOME), "config path under smoke home");
     console.log("ok: config show");
 
     // Seed one stale + one fresh session for list --stale / --prune

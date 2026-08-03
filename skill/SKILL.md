@@ -69,7 +69,7 @@ Built-in personas:
 | fixer | full | prose | auto=low |
 | advisor | full | prose | tradeoffs |
 
-Config personas: `~/.config/droid-companion/config.toml` → `[personas.NAME]`  
+Config: `~/.config/droid-companion/config.toml` (created on first load if missing) → `[personas.NAME]`  
 `droid-companion config show` · `spawn --persona review`
 
 Compat: `--preset` / `--profile` = `--persona`.
