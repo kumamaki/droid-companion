@@ -27,8 +27,11 @@ dist/
 .coverage/
 .cache/
 
-# Beads / Dolt files (added by bd init)
+# Beads / Dolt — local machine wiring only, never committed.
+# bd init copies global core.hooksPath hooks (which hardcode identity emails)
+# into .beads/hooks/; committing .beads/ would leak them. Dolt-native beads
+# syncs via `bd dolt push`/`pull`, not git.
+.beads/
 .dolt/
 *.db
 .beads-credential-key
-.beads/proxieddb/

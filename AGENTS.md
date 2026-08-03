@@ -71,10 +71,8 @@ just release         # prep only; does not push
 
 ## Issue tracking
 
-- `bd` is the sole tracker for durable work. Do not mirror bead tasks into
-  TodoWrite or markdown checklists.
-- Create before implementation, claim when starting, and close only after
-  verification.
-- Run `bd prime` for the current command reference and workflow details.
-- Never commit `.beads/beads.db`; `.beads/issues.jsonl` and configuration are
-  the portable source of truth.
+- `bd` is the sole tracker for durable work. Create before implementation,
+  claim when starting, close only after verification. Run `bd prime` for the
+  command reference.
+- Beads is **local-only and Dolt-native** here — all of `.beads/` is
+  git-ignored and never committed (this is a public repo).
