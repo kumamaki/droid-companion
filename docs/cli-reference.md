@@ -20,7 +20,7 @@ Version: `droid-companion --version` → plain text version string (also in doct
 | `list` | Roster + sessions | implemented |
 | `close` | Untrack companion (see below) | implemented |
 | `doctor` | Environment checks (includes config) | implemented |
-| `config show` | Resolved config JSON | implemented |
+| `config show` | Resolved config (human on TTY, JSON piped) | implemented |
 | `install-skill` | Copy skill + contract into Factory skills dir | implemented |
 | `status` | Background job status | implemented |
 | `result` | Background job result (`--wait`) | implemented |
@@ -38,9 +38,11 @@ TOML at `~/.config/droid-companion/config.toml`
 First command that loads config **creates** the file with starter defaults if it is missing. Existing files are never overwritten.
 
 ```sh
-droid-companion config show
+droid-companion config show [--json|--text]
 # → path, exists, created (true only on the load that wrote the file), …
 ```
+
+**TTY → human**, colored summary (path, defaults, personas). **Non-TTY → JSON** (resolved + merged config). `--json` forces machine JSON anywhere; `--text` forces the human summary even when piped (no color escapes). The file on disk is always TOML; JSON here is the *resolved* view.
 
 | Section | Role |
 |---------|------|
@@ -318,8 +320,10 @@ Background accept:
 ## `list` (spec)
 
 ```sh
-droid-companion list [--stale] [--prune] [--older-than DUR] [--deep]
+droid-companion list [--stale] [--prune] [--older-than DUR] [--deep] [--json|--text]
 ```
+
+**TTY → human**, colored roster (bold names, dim traits, stale marker). **Non-TTY → JSON** (shape below). `--json` forces machine JSON anywhere; `--text` forces the human roster even when piped (no color escapes).
 
 | Flag | Notes |
 |------|--------|

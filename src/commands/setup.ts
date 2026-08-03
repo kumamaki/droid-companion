@@ -3,6 +3,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { runDoctorChecks, type DoctorCheckResult } from "../lib/doctor-checks";
+import { homePath, isTty, useHumanUi } from "../lib/human";
 import { PACKAGE_NAME, VERSION } from "../lib/paths";
 import { cmdInstallSkill } from "./install-skill";
 
@@ -47,28 +48,6 @@ type SetupSummary = {
   };
   next: string[];
 };
-
-/** Collapse $HOME to ~ for human display. */
-function homePath(path: string): string {
-  const home = homedir();
-  if (path === home) return "~";
-  if (path.startsWith(home + "/")) return "~" + path.slice(home.length);
-  return path;
-}
-
-function isTty(): boolean {
-  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
-}
-
-/**
- * Human mode: TTY by default, or --text.
- * Machine mode: --json, or non-TTY without --text.
- */
-function useHumanUi(opts: SetupOptions): boolean {
-  if (opts.json) return false;
-  if (opts.text) return true;
-  return isTty();
-}
 
 function defaultSkillDir(target?: string): string {
   return target ?? join(homedir(), ".factory", "skills", "droid-companion");

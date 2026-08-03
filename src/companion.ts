@@ -88,7 +88,7 @@ Commands:
   setup                  First-run wizard (doctor → skill → cheat sheet)
   doctor                 Check droid, contract, state, config
   install-skill          Copy skill + contract into ~/.factory/skills
-  config show            Resolved config (JSON)
+  config show            Resolved config (TTY: human · piped: JSON)
   spawn --name NAME      Create a named companion
   send <name> …          Message a companion
   list [--stale|--prune] Roster / sessions (cheap health; no model pong)
@@ -139,6 +139,11 @@ list options:
   --stale                 Show companions idle longer than --older-than
   --prune                 Untrack stale companions (never kills running jobs)
   --older-than DUR        Stale threshold (config defaults.stale_after or 7d)
+
+human/machine output (config show · list):
+  TTY default             Human text (colored; NO_COLOR disables)
+  --json                  Force machine JSON
+  --text                  Force human text when piped (no color escapes)
 
 result options:
   --wait  --poll-ms N
@@ -201,11 +206,15 @@ async function main(): Promise<void> {
       }
 
       case "config": {
+        const opts = parseArgs(rest);
         const sub = positionalNonFlags(rest)[0] ?? "show";
         if (sub !== "show") {
-          die("Usage: config show");
+          die("Usage: config show [--json|--text]");
         }
-        await cmdConfigShow();
+        await cmdConfigShow({
+          json: opts.json === true,
+          text: opts.text === true,
+        });
         break;
       }
 
@@ -280,6 +289,8 @@ async function main(): Promise<void> {
           prune: opts.prune === true,
           deep: opts.deep === true,
           olderThan: opts["older-than"] as string | undefined,
+          json: opts.json === true,
+          text: opts.text === true,
         });
         break;
       }

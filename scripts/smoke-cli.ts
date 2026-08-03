@@ -203,6 +203,13 @@ async function main(): Promise<void> {
     assert(cfgJson.path.includes(HOME), "config path under smoke home");
     console.log("ok: config show");
 
+    const cfgText = await run(["config", "show", "--text"]);
+    assert(cfgText.stdout.includes("Built-in personas"), "config --text human sections");
+    assert(cfgText.stdout.includes("Defaults"), "config --text has Defaults");
+    assert(!cfgText.stdout.trimStart().startsWith("{"), "config --text is not JSON");
+    assert(!cfgText.stdout.includes("\u001b"), "config --text piped has no color escapes");
+    console.log("ok: config show --text");
+
     // Seed one stale + one fresh session for list --stale / --prune
     const now = Date.now();
     writeFileSync(
@@ -245,6 +252,14 @@ async function main(): Promise<void> {
     assert(typeof staleRow?.idleForMs === "number", "roster.idleForMs");
     assert(staleRow?.jobId === null, "idle jobId null");
     console.log("ok: list --stale");
+
+    const listText = await run(["list", "--text"]);
+    assert(listText.stdout.includes("2 companions"), `list --text header: ${listText.stdout.slice(0, 200)}`);
+    assert(listText.stdout.includes("stale-one"), "list --text shows names");
+    assert(listText.stdout.includes("stale"), "list --text marks stale");
+    assert(!listText.stdout.trimStart().startsWith("{"), "list --text is not JSON");
+    assert(!listText.stdout.includes("\u001b"), "list --text piped has no color escapes");
+    console.log("ok: list --text");
 
     const pruned = await run(["list", "--prune", "--older-than", "7d"]);
     const pruneJson = JSON.parse(pruned.stdout) as {
