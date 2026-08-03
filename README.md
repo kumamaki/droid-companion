@@ -13,6 +13,14 @@ droid-companion close audit
 
 **Status:** `0.1.3` — core loop, background jobs, personas, optional config, `setup` wizard.
 
+## Paste to your agent
+
+```
+Install and set up droid-companion for me. Follow https://raw.githubusercontent.com/kumamaki/droid-companion/main/docs/agent-setup.md
+```
+
+That file is the install checklist (brew / source, `setup --yes`, skill, doctor). How to *use* companions after that: [docs/agent-guide.md](docs/agent-guide.md).
+
 ## Why use this
 
 `droid exec` is one-shot. If you want a second opinion, a security pass, or a fixer that remembers the last three turns, you either re-explain everything each call or invent your own session bookkeeping.
@@ -146,6 +154,7 @@ Rules:
 |-----|----------|
 | [overview](docs/overview.md) | Layers, config, autonomy defaults |
 | [install](docs/install.md) | Brew, binary, from source |
+| [agent-setup](docs/agent-setup.md) | Paste-to-agent install checklist |
 | [agent-guide](docs/agent-guide.md) | How the main Droid should call this CLI |
 | [cli-reference](docs/cli-reference.md) | Commands, flags, JSON shapes |
 | [background-jobs](docs/background-jobs.md) | `--bg`, mutex, idempotency, notify |
