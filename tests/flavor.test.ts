@@ -46,12 +46,10 @@ describe("resolveFlavor", () => {
     ).toBe("dev");
   });
 
-  test("companion-dev.ts basename is not enough without env (entry sets FLAVOR)", () => {
-    // Intentional: only exact droid-companion-dev name or env. Source entry
-    // companion-dev.ts sets DROID_COMPANION_FLAVOR=dev before import.
+  test("source entry companion-dev.ts is dev", () => {
     expect(
       resolveFlavor({}, ["/usr/bin/bun", "/app/src/companion-dev.ts"]),
-    ).toBe("prod");
+    ).toBe("dev");
   });
 
   test("production alias maps to prod", () => {

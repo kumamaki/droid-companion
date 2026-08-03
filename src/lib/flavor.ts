@@ -44,5 +44,6 @@ function basenameLooksLikeDev(pathOrName: string): boolean {
   const base = basename(pathOrName)
     // strip common script suffixes when running from source
     .replace(/\.(ts|js|mjs|cjs)$/i, "");
-  return base === "droid-companion-dev";
+  // Compiled/installed name + source entry (src/companion-dev.ts)
+  return base === "droid-companion-dev" || base === "companion-dev";
 }

@@ -76,7 +76,7 @@ async function main(): Promise<void> {
     );
     console.log(`ok: doctor ok=<${doctorJson.ok}> flavor=<${doctorJson.flavor}>`);
 
-    // Dev flavor via env (same entry as just run-dev / companion-dev.ts)
+    // Dev flavor via env on prod entry
     {
       const proc = Bun.spawn(["bun", ENTRY, "doctor"], {
         cwd: ROOT,
@@ -117,6 +117,38 @@ async function main(): Promise<void> {
         "dev doctor materializes its own config",
       );
       console.log("ok: doctor with DROID_COMPANION_FLAVOR=dev");
+    }
+
+    // Dev entry file (just run-dev) — basename + env, no HOME override needed for flavor
+    {
+      const DEV_ENTRY = join(ROOT, "src", "companion-dev.ts");
+      const proc = Bun.spawn(["bun", DEV_ENTRY, "--help"], {
+        cwd: ROOT,
+        env: {
+          ...process.env,
+          DROID_COMPANION_HOME: join(HOME, "dev-entry-home"),
+          DROID_COMPANION_CONFIG: join(HOME, "dev-entry-config.toml"),
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
+      const code = await proc.exited;
+      if (code !== 0) {
+        throw new Error(`dev entry --help exit <${code}>\n${stdout}\n${stderr}`);
+      }
+      assert(
+        stdout.includes("Binary: droid-companion-dev"),
+        `dev entry help binary line missing:\n${stdout.slice(0, 400)}`,
+      );
+      assert(
+        stdout.includes("droid-companion-dev/config.toml"),
+        `dev entry help config path missing:\n${stdout.slice(0, 800)}`,
+      );
+      console.log("ok: companion-dev.ts --help shows dev binary");
     }
 
     // non-TTY defaults to machine JSON; --json makes it explicit
