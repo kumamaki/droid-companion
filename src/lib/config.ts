@@ -1,26 +1,37 @@
 import { existsSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
-import { parsePreset, type PresetName } from "./presets";
+import {
+  getBuiltinPersona,
+  mergePersonaPackage,
+  type PersonaPackage,
+} from "./personas";
+import {
+  inferDefaultAuto,
+  MAX_POSITIONAL_MESSAGE_CHARS,
+} from "./prompts";
 import { DEFAULT_STALE_MS, parseDurationMs } from "./roster";
-import { MAX_POSITIONAL_MESSAGE_CHARS } from "./prompts";
-import type { ReplyFormat, SpawnOptions, ToolProfile } from "./types";
+import type {
+  ReplyFormat,
+  SpawnOptions,
+  SpawnPlan,
+  ToolProfile,
+} from "./types";
 
 /** Built-in defaults when config is missing or a key is omitted. */
 export const BUILTIN_STALE_AFTER = "7d";
 export const BUILTIN_MAX_POSITIONAL_CHARS = MAX_POSITIONAL_MESSAGE_CHARS;
 
-export type ConfigSpawnBundle = {
-  preset?: PresetName;
+/** Sticky defaults that are not a full persona. */
+export type ConfigDefaults = {
+  /** Default persona name when spawn omits --persona */
+  persona?: string;
   format?: ReplyFormat;
-  /** Tool surface: full | lite (TOML: tool_profile) */
   toolProfile?: ToolProfile;
-  systemPrompt?: string;
-  role?: string;
-  model?: string;
   auto?: string;
   cwd?: string;
   brief?: string;
+  model?: string;
   reasoningEffort?: string;
   noContract?: boolean;
   tag?: string;
@@ -32,8 +43,9 @@ export type CompanionConfig = {
   staleAfter: string;
   staleAfterMs: number;
   maxPositionalChars: number;
-  defaults: ConfigSpawnBundle;
-  profiles: Record<string, ConfigSpawnBundle>;
+  defaults: ConfigDefaults;
+  /** User-defined personas from [personas.*] (and legacy [profiles.*]). */
+  personas: Record<string, PersonaPackage>;
 };
 
 type RawTable = Record<string, unknown>;
@@ -67,7 +79,12 @@ function optionalBool(value: unknown, label: string): boolean | undefined {
 
 function optionalPositiveInt(value: unknown, label: string): number | undefined {
   if (value === undefined || value === null) return undefined;
-  if (typeof value !== "number" || !Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < 1
+  ) {
     throw new Error(`Config ${label} must be a positive integer`);
   }
   return value;
@@ -76,7 +93,7 @@ function optionalPositiveInt(value: unknown, label: string): number | undefined 
 function parseFormatField(value: unknown, label: string): ReplyFormat | undefined {
   if (value === undefined || value === null) return undefined;
   if (value === "prose" || value === "findings") return value;
-  throw new Error(`Config ${label} must be prose|findings`);
+  throw new Error(`Config ${label} must be prose|findings (reply shape)`);
 }
 
 function parseToolProfile(value: unknown, label: string): ToolProfile | undefined {
@@ -85,38 +102,119 @@ function parseToolProfile(value: unknown, label: string): ToolProfile | undefine
   throw new Error(`Config ${label} must be full|lite (tool surface)`);
 }
 
-function parseSpawnBundle(raw: RawTable, label: string): ConfigSpawnBundle {
-  const presetRaw = optionalString(raw.preset, `${label}.preset`);
-  const preset = presetRaw ? parsePreset(presetRaw) : undefined;
-  const systemPrompt =
+function parseDefaults(raw: RawTable): ConfigDefaults {
+  // persona preferred; legacy preset= maps to persona name
+  const persona =
+    optionalString(raw.persona, "[defaults].persona") ??
+    optionalString(raw.preset, "[defaults].preset");
+
+  const toolProfile =
+    parseToolProfile(raw.tool_profile, "[defaults].tool_profile") ??
+    parseToolProfile(raw.toolProfile, "[defaults].toolProfile") ??
+    parseToolProfile(raw.profile, "[defaults].profile");
+
+  return {
+    persona,
+    format: parseFormatField(raw.format, "[defaults].format"),
+    toolProfile,
+    auto: optionalString(raw.auto, "[defaults].auto"),
+    cwd: optionalString(raw.cwd, "[defaults].cwd"),
+    brief: optionalString(raw.brief, "[defaults].brief"),
+    model: optionalString(raw.model, "[defaults].model"),
+    reasoningEffort:
+      optionalString(raw.reasoning_effort, "[defaults].reasoning_effort") ??
+      optionalString(raw.reasoningEffort, "[defaults].reasoningEffort"),
+    noContract:
+      optionalBool(raw.no_contract, "[defaults].no_contract") ??
+      optionalBool(raw.noContract, "[defaults].noContract"),
+    tag: optionalString(raw.tag, "[defaults].tag"),
+  };
+}
+
+/**
+ * Parse one [personas.NAME] / legacy [profiles.NAME] table into a package.
+ * Supports extends = "critic" to fork a built-in.
+ */
+function parsePersonaTable(
+  name: string,
+  raw: RawTable,
+  label: string,
+): PersonaPackage {
+  const extendsName =
+    optionalString(raw.extends, `${label}.extends`) ??
+    optionalString(raw.preset, `${label}.preset`); // legacy: preset = "critic" meant base package
+
+  const role =
+    optionalString(raw.role, `${label}.role`) ??
     optionalString(raw.system_prompt, `${label}.system_prompt`) ??
     optionalString(raw.systemPrompt, `${label}.systemPrompt`);
-  const role = optionalString(raw.role, `${label}.role`);
-  const format = parseFormatField(raw.format, `${label}.format`);
-  // Canonical: tool_profile. Legacy alias: profile (same full|lite meaning).
+
   const toolProfile =
     parseToolProfile(raw.tool_profile, `${label}.tool_profile`) ??
     parseToolProfile(raw.toolProfile, `${label}.toolProfile`) ??
     parseToolProfile(raw.profile, `${label}.profile`);
+
+  const format = parseFormatField(raw.format, `${label}.format`);
+  const auto = optionalString(raw.auto, `${label}.auto`);
+  const model = optionalString(raw.model, `${label}.model`);
+  const cwd = optionalString(raw.cwd, `${label}.cwd`);
+  const brief = optionalString(raw.brief, `${label}.brief`);
+  const reasoningEffort =
+    optionalString(raw.reasoning_effort, `${label}.reasoning_effort`) ??
+    optionalString(raw.reasoningEffort, `${label}.reasoningEffort`);
   const noContract =
     optionalBool(raw.no_contract, `${label}.no_contract`) ??
     optionalBool(raw.noContract, `${label}.noContract`);
+  const tag = optionalString(raw.tag, `${label}.tag`);
 
+  let base: PersonaPackage | undefined;
+  if (extendsName) {
+    base = getBuiltinPersona(extendsName);
+    if (!base) {
+      throw new Error(
+        `Config ${label}.extends unknown built-in persona <${extendsName}>. ` +
+          `Use: critic|auditor|fixer|advisor`,
+      );
+    }
+  }
+
+  if (!base && !role) {
+    throw new Error(
+      `Config ${label} needs role=… or extends=<builtin persona>`,
+    );
+  }
+
+  if (base) {
+    return mergePersonaPackage(base, {
+      name,
+      source: "config",
+      role,
+      toolProfile,
+      format,
+      auto,
+      model,
+      cwd,
+      brief,
+      reasoningEffort,
+      noContract,
+      tag,
+    });
+  }
+
+  // Pure custom persona — fill remaining defaults
   return {
-    preset,
-    format,
-    toolProfile,
-    systemPrompt,
-    role,
-    model: optionalString(raw.model, `${label}.model`),
-    auto: optionalString(raw.auto, `${label}.auto`),
-    cwd: optionalString(raw.cwd, `${label}.cwd`),
-    brief: optionalString(raw.brief, `${label}.brief`),
-    reasoningEffort:
-      optionalString(raw.reasoning_effort, `${label}.reasoning_effort`) ??
-      optionalString(raw.reasoningEffort, `${label}.reasoningEffort`),
+    name,
+    source: "config",
+    role: role!,
+    toolProfile: toolProfile ?? "full",
+    format: format ?? "prose",
+    auto,
+    model,
+    cwd,
+    brief,
+    reasoningEffort,
     noContract,
-    tag: optionalString(raw.tag, `${label}.tag`),
+    tag,
   };
 }
 
@@ -128,8 +226,34 @@ function emptyConfig(path: string | null, exists: boolean): CompanionConfig {
     staleAfterMs: DEFAULT_STALE_MS,
     maxPositionalChars: BUILTIN_MAX_POSITIONAL_CHARS,
     defaults: {},
-    profiles: {},
+    personas: {},
   };
+}
+
+function parsePersonaMap(
+  raw: unknown,
+  section: "personas" | "profiles",
+): Record<string, PersonaPackage> {
+  if (raw === undefined) return {};
+  if (!isPlainObject(raw)) {
+    throw new Error(`Config [${section}] must be a table of named packages`);
+  }
+  const out: Record<string, PersonaPackage> = {};
+  for (const [name, body] of Object.entries(raw)) {
+    if (!name.trim()) {
+      throw new Error(`Config [${section}] name must be non-empty`);
+    }
+    if (/\s/.test(name)) {
+      throw new Error(
+        `Config [${section}.${name}] name must not contain whitespace`,
+      );
+    }
+    if (!isPlainObject(body)) {
+      throw new Error(`Config [${section}.${name}] must be a table`);
+    }
+    out[name] = parsePersonaTable(name, body, `[${section}.${name}]`);
+  }
+  return out;
 }
 
 /**
@@ -151,27 +275,17 @@ export function parseConfigObject(
     throw new Error("Config [defaults] must be a table");
   }
 
-  const defaultsTable = defaultsRaw ?? {};
-  const sendRaw = isPlainObject(defaultsTable)
-    ? (defaultsTable as RawTable).send
-    : undefined;
+  const defaultsTable: RawTable = isPlainObject(defaultsRaw) ? defaultsRaw : {};
+  const sendRaw = defaultsTable.send;
   if (sendRaw !== undefined && !isPlainObject(sendRaw)) {
     throw new Error("Config [defaults.send] must be a table");
   }
 
-  const defaultsBundle = isPlainObject(defaultsTable)
-    ? parseSpawnBundle(defaultsTable as RawTable, "[defaults]")
-    : {};
+  const defaults = parseDefaults(defaultsTable);
 
   const staleAfter =
-    optionalString(
-      isPlainObject(defaultsTable) ? (defaultsTable as RawTable).stale_after : undefined,
-      "[defaults].stale_after",
-    ) ??
-    optionalString(
-      isPlainObject(defaultsTable) ? (defaultsTable as RawTable).staleAfter : undefined,
-      "[defaults].staleAfter",
-    ) ??
+    optionalString(defaultsTable.stale_after, "[defaults].stale_after") ??
+    optionalString(defaultsTable.staleAfter, "[defaults].staleAfter") ??
     BUILTIN_STALE_AFTER;
 
   let staleAfterMs: number;
@@ -182,40 +296,25 @@ export function parseConfigObject(
     throw new Error(`Config [defaults].stale_after: ${msg}`, { cause: err });
   }
 
+  const sendTable = isPlainObject(sendRaw) ? sendRaw : {};
   const maxPositionalChars =
     optionalPositiveInt(
-      isPlainObject(sendRaw)
-        ? (sendRaw as RawTable).max_positional_chars
-        : undefined,
+      sendTable.max_positional_chars,
       "[defaults.send].max_positional_chars",
     ) ??
     optionalPositiveInt(
-      isPlainObject(sendRaw)
-        ? (sendRaw as RawTable).maxPositionalChars
-        : undefined,
+      sendTable.maxPositionalChars,
       "[defaults.send].maxPositionalChars",
     ) ??
     BUILTIN_MAX_POSITIONAL_CHARS;
 
-  const profiles: Record<string, ConfigSpawnBundle> = {};
-  const profilesRaw = raw.profiles;
-  if (profilesRaw !== undefined) {
-    if (!isPlainObject(profilesRaw)) {
-      throw new Error("Config [profiles] must be a table of named bundles");
-    }
-    for (const [name, body] of Object.entries(profilesRaw)) {
-      if (!name.trim()) {
-        throw new Error("Config profile name must be non-empty");
-      }
-      if (/\s/.test(name)) {
-        throw new Error(`Config profile name must not contain whitespace: <${name}>`);
-      }
-      if (!isPlainObject(body)) {
-        throw new Error(`Config [profiles.${name}] must be a table`);
-      }
-      profiles[name] = parseSpawnBundle(body, `[profiles.${name}]`);
-    }
-  }
+  // Canonical [personas.*]; legacy [profiles.*] still loads (same shape).
+  const fromPersonas = parsePersonaMap(raw.personas, "personas");
+  const fromProfiles = parsePersonaMap(raw.profiles, "profiles");
+  const personas: Record<string, PersonaPackage> = {
+    ...fromProfiles,
+    ...fromPersonas, // personas win on name clash
+  };
 
   return {
     path,
@@ -223,8 +322,8 @@ export function parseConfigObject(
     staleAfter,
     staleAfterMs,
     maxPositionalChars,
-    defaults: defaultsBundle,
-    profiles,
+    defaults,
+    personas,
   };
 }
 
@@ -258,92 +357,92 @@ export function loadConfig(path: string = configPath()): CompanionConfig {
   }
 }
 
-export function getNamedProfile(
+/**
+ * Resolve a persona by name: config first (so users can shadow built-ins),
+ * then built-in.
+ */
+export function resolvePersona(
   config: CompanionConfig,
   name: string,
-): ConfigSpawnBundle {
+): PersonaPackage {
   const key = name.trim();
-  const found = config.profiles[key];
-  if (!found) {
-    const known = Object.keys(config.profiles);
-    throw new Error(
-      `Unknown config profile <${key}>` +
-        (known.length ? `. Known: ${known.join(", ")}` : ". No [profiles.*] in config.") +
-        (config.path ? ` (${config.path})` : ""),
-    );
-  }
-  return found;
+  if (!key) throw new Error("Persona name must be non-empty");
+
+  const fromConfig = config.personas[key] ?? config.personas[key.toLowerCase()];
+  if (fromConfig) return fromConfig;
+
+  const builtin = getBuiltinPersona(key);
+  if (builtin) return builtin;
+
+  const known = [
+    ...Object.keys(config.personas),
+    ...["critic", "auditor", "fixer", "advisor"].filter(
+      (b) => !config.personas[b],
+    ),
+  ];
+  throw new Error(
+    `Unknown persona <${key}>. Known: ${known.join(", ") || "(none)"}` +
+      (config.path ? ` (config ${config.path})` : ""),
+  );
 }
 
-/**
- * Resolve tool-surface lite flag.
- * true = force lite; false = force full (preset must not re-enable lite);
- * undefined = leave to built-in preset.
- */
-function pickToolLite(
-  cliLite: boolean | undefined,
-  named: ConfigSpawnBundle | undefined,
-  defaults: ConfigSpawnBundle,
-): boolean | undefined {
-  if (cliLite === true) return true;
-  if (cliLite === false) return false;
-  const fromNamed = named?.toolProfile;
-  if (fromNamed === "lite") return true;
-  if (fromNamed === "full") return false;
-  const fromDefaults = defaults.toolProfile;
-  if (fromDefaults === "lite") return true;
-  if (fromDefaults === "full") return false;
+function cliToolProfile(cli: SpawnOptions): ToolProfile | undefined {
+  if (cli.toolProfile) return cli.toolProfile;
+  if (cli.lite === true) return "lite";
+  if (cli.lite === false) return "full";
   return undefined;
 }
 
 /**
- * Merge layers into spawn options.
- * Precedence: CLI > named profile > [defaults] > left empty for built-in preset later.
- *
- * `cli` should only contain fields the user actually set (undefined = not set).
+ * Resolve full spawn plan.
+ * Precedence: CLI > persona package > [defaults] > built-in fallbacks.
+ * Role: CLI --role replaces persona role entirely (no stack).
  */
-export function mergeSpawnOptions(
+export function resolveSpawnPlan(
   cli: SpawnOptions,
   config: CompanionConfig,
-  namedProfile?: ConfigSpawnBundle,
-): SpawnOptions {
-  const d = config.defaults;
-  const n = namedProfile;
+): SpawnPlan {
+  const personaName = cli.persona ?? config.defaults.persona;
+  const persona = personaName ? resolvePersona(config, personaName) : undefined;
 
-  const lite = pickToolLite(cli.lite, n, d);
+  // Role: CLI replaces; else persona; else nothing (contract-only possible)
+  const role = cli.role ?? persona?.role;
+
+  const toolProfile: ToolProfile =
+    cliToolProfile(cli) ??
+    persona?.toolProfile ??
+    config.defaults.toolProfile ??
+    "full";
+
+  const format: ReplyFormat =
+    cli.format ?? persona?.format ?? config.defaults.format ?? "prose";
+
+  const auto =
+    cli.auto ??
+    persona?.auto ??
+    config.defaults.auto ??
+    inferDefaultAuto(role, toolProfile);
 
   return {
-    ...cli,
-    preset: cli.preset ?? n?.preset ?? d.preset,
-    format: cli.format ?? n?.format ?? d.format,
-    lite,
-    systemPrompt:
-      cli.systemPrompt ??
-      n?.systemPrompt ??
-      n?.role ??
-      d.systemPrompt ??
-      d.role,
-    role:
-      cli.role ??
-      n?.role ??
-      n?.systemPrompt ??
-      d.role ??
-      d.systemPrompt,
-    model: cli.model ?? n?.model ?? d.model,
-    auto: cli.auto ?? n?.auto ?? d.auto,
-    cwd: cli.cwd ?? n?.cwd ?? d.cwd,
-    brief: cli.brief ?? n?.brief ?? d.brief,
+    name: cli.name,
+    persona: persona?.name ?? null,
+    personaSource: persona?.source ?? null,
+    role,
+    toolProfile,
+    format,
+    auto,
+    model: cli.model ?? persona?.model ?? config.defaults.model,
+    cwd: cli.cwd ?? persona?.cwd ?? config.defaults.cwd,
+    brief: cli.brief ?? persona?.brief ?? config.defaults.brief,
+    tag: cli.tag ?? persona?.tag ?? config.defaults.tag,
     reasoningEffort:
-      cli.reasoningEffort ?? n?.reasoningEffort ?? d.reasoningEffort,
+      cli.reasoningEffort ??
+      persona?.reasoningEffort ??
+      config.defaults.reasoningEffort,
     noContract:
-      cli.noContract === true
-        ? true
-        : n?.noContract === true
-          ? true
-          : d.noContract === true
-            ? true
-            : cli.noContract,
-    tag: cli.tag ?? n?.tag ?? d.tag,
+      cli.noContract === true ||
+      persona?.noContract === true ||
+      config.defaults.noContract === true,
   };
 }
 
@@ -353,4 +452,12 @@ export function effectiveStaleAfter(
   olderThanCli?: string,
 ): string {
   return olderThanCli?.trim() || config.staleAfter;
+}
+
+/** @deprecated use resolvePersona — kept for any stray imports during transition */
+export function getNamedProfile(
+  config: CompanionConfig,
+  name: string,
+): PersonaPackage {
+  return resolvePersona(config, name);
 }

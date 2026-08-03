@@ -1,17 +1,11 @@
 import { validateName } from "../lib/args";
-import {
-  getNamedProfile,
-  loadConfig,
-  mergeSpawnOptions,
-} from "../lib/config";
+import { loadConfig, resolveSpawnPlan } from "../lib/config";
 import { droidExec } from "../lib/droid-exec";
 import { ensureStateDir, resolveContractPath } from "../lib/paths";
-import { applyPreset, parsePreset } from "../lib/presets";
 import {
   FINDINGS_FORMAT_INSTRUCTION,
   LITE_INSTRUCTION,
   composeSystemPrompt,
-  inferDefaultAuto,
   loadContractText,
   resolveBriefPath,
   resolveCwd,
@@ -19,7 +13,7 @@ import {
   writeSystemPromptFile,
 } from "../lib/prompts";
 import { assertNameAvailable, trackSession } from "../lib/state";
-import type { SessionRecord, SpawnOptions, ToolProfile } from "../lib/types";
+import type { SessionRecord, SpawnOptions } from "../lib/types";
 
 function output(obj: unknown): void {
   console.log(JSON.stringify(obj, null, 2));
@@ -29,45 +23,40 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
   ensureStateDir();
 
   const config = loadConfig();
-  const named = raw.configProfile
-    ? getNamedProfile(config, raw.configProfile)
-    : undefined;
-  const merged = mergeSpawnOptions(raw, config, named);
+  const plan = resolveSpawnPlan(raw, config);
 
-  const presetName = merged.preset ? parsePreset(merged.preset) : undefined;
-  // applyPreset fills only gaps; lite:false from config full is preserved.
-  const opts = presetName ? applyPreset(merged, presetName) : merged;
-
-  const name = validateName(opts.name);
+  const name = validateName(plan.name);
   assertNameAvailable(name);
 
-  const cwd = resolveCwd(opts.cwd);
-  const briefPath = opts.brief ? resolveBriefPath(opts.brief, cwd) : undefined;
-  const toolProfile: ToolProfile = opts.lite === true ? "lite" : "full";
-  const format = opts.format ?? "prose";
-  const role = opts.role ?? opts.systemPrompt;
-  const auto = opts.auto ?? inferDefaultAuto(role, toolProfile);
+  const cwd = resolveCwd(plan.cwd);
+  const briefPath = plan.brief ? resolveBriefPath(plan.brief, cwd) : undefined;
+  const { toolProfile, format, auto, role } = plan;
 
   const args: string[] = [];
-  if (opts.model) args.push("--model", opts.model);
+  if (plan.model) args.push("--model", plan.model);
   if (auto) args.push("--auto", auto);
   if (cwd) args.push("--cwd", cwd);
-  if (opts.reasoningEffort) args.push("--reasoning-effort", opts.reasoningEffort);
-  args.push("--tag", opts.tag ?? name);
+  if (plan.reasoningEffort) {
+    args.push("--reasoning-effort", plan.reasoningEffort);
+  }
+  args.push("--tag", plan.tag ?? name);
 
   if (toolProfile === "lite") {
     args.push("--disabled-tools", "Task,GenerateDroid,Skill");
   }
 
-  const contractBlock = opts.noContract ? undefined : loadContractText();
+  const contractBlock = plan.noContract ? undefined : loadContractText();
   const liteBlock = toolProfile === "lite" ? LITE_INSTRUCTION : undefined;
-  const formatBlock = format === "findings" ? FINDINGS_FORMAT_INSTRUCTION : undefined;
+  // Reply-shape instruction is separate from role text (format override stays useful).
+  const formatBlock =
+    format === "findings" ? FINDINGS_FORMAT_INSTRUCTION : undefined;
   const identityLine = `Your companion name is ${name}. Introduce yourself by that name and keep using it.`;
+  // Role is a single voice — never stacked with a second system prompt layer.
   const rolePrompt = composeSystemPrompt([
     contractBlock,
     liteBlock,
     formatBlock,
-    opts.systemPrompt,
+    role,
     identityLine,
   ]);
   if (rolePrompt) {
@@ -79,19 +68,22 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
   args.push(withBrief(readyLine, briefPath, "spawn"));
 
   const result = await droidExec(args, { name });
-  if (!result.session_id) throw new Error("No session_id returned from droid exec");
+  if (!result.session_id) {
+    throw new Error("No session_id returned from droid exec");
+  }
 
   const now = new Date().toISOString();
   const record: SessionRecord = {
     sessionId: result.session_id,
     name,
-    tag: opts.tag ?? name,
-    model: opts.model,
+    tag: plan.tag ?? name,
+    model: plan.model,
     brief: briefPath,
     cwd,
     auto,
     format,
     toolProfile,
+    persona: plan.persona ?? undefined,
     role,
     lastResponse: result.result ?? "",
     lastDurationMs: result.duration_ms,
@@ -111,10 +103,10 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
     auto: auto ?? null,
     format,
     toolProfile,
-    preset: presetName ?? null,
-    configProfile: raw.configProfile ?? null,
-    contract: !opts.noContract,
-    contractPath: opts.noContract ? null : resolveContractPath(),
+    persona: plan.persona,
+    personaSource: plan.personaSource,
+    contract: !plan.noContract,
+    contractPath: plan.noContract ? null : resolveContractPath(),
     announce: `Companion ready: ${name} (${result.session_id}). Call with: droid-companion send ${name} "…"`,
   });
 }

@@ -5,7 +5,7 @@ Named, multi-turn **companion** sessions for [Factory Droid](https://factory.ai)
 The main Droid (or you) keeps specialists on speed dial: spawn once by **name**, send many turns, close when done. **Agent-first:** JSON for control, files for long content.
 
 ```sh
-droid-companion spawn --name audit --preset critic
+droid-companion spawn --name audit --persona critic
 droid-companion send audit --message-file examples/ask.md
 droid-companion list
 droid-companion close audit

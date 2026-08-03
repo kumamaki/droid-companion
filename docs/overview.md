@@ -26,18 +26,19 @@ Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs 
 | Layer | Meaning |
 |-------|---------|
 | **Companion** | Long-lived named session. Spawn once → many `send`s → `close` when done. |
-| **Contract** | `contract/contract.md` injected on spawn (unless `--no-contract`): named specialist relay for the main droid (identity, relay rules, hard stops). Not a full work-style manifesto. |
-| **Role** | `--system-prompt` / `--role` specialist flavor **on top** of the contract (how hard to work, tone, domain). |
-| **Brief** | Shared brief file (Goal · Constraints · Artifacts · Ask). Path is tracked; content is not inlined into every argv. |
-| **Tool profile** | `full` (default) or `lite` (cheap critique: no heavy skills/MCP/mutators). CLI: `--lite`. Config: `tool_profile`. Not the same as named config `--profile`. |
-| **Format** | `prose` (default) or `findings` (`severity` · `path:line` · claim). |
+| **Contract** | `contract/contract.md` injected on spawn (unless `--no-contract`): named specialist relay (identity, hard stops). |
+| **Persona** | Sealed package: **role** + **tool_profile** + **format** + optional **auto**. Built-ins: `critic` · `auditor` · `fixer` · `advisor`. Config: `[personas.NAME]`. CLI: `--persona`. |
+| **Role** | Specialist voice. From the persona, **or** full replacement via `--role` / `--system-prompt` (never stacked on top of persona role). |
+| **Tool profile** | `full` \| `lite` — tool surface (`--tool-profile` / `--lite`). Not the same as `--persona`. |
+| **Format** | Reply shape: `prose` \| `findings` (`--format`). Default comes from the persona; CLI may override. |
+| **Brief** | Shared brief file path tracked across sends. |
 | **Jobs** | Background sends (`--bg`) so callers never need infinite foreground waits. |
 
 ## Core product vs recipes
 
-**Core (v0.1):** named multi-turn loop — `setup` · `spawn` · `send` · `list` · `close` · `doctor` · `install-skill` · `status` · `result`.
+**Core:** named multi-turn loop — `setup` · `spawn` · `send` · `list` · `close` · `doctor` · `install-skill` · `config` · `status` · `result`.
 
-**Recipes (later):** multi-agent one-shots on top of core — `discuss` (two-sided debate), `jury` (parallel multi-model), `vision` (image paths via Read). Not the headline product. Prefer `send --images` over a vision verb.
+**Recipes (later):** multi-agent one-shots — `discuss` / `jury` / `vision`. Prefer `send --images` over a vision verb.
 
 ## Config (optional)
 
@@ -47,8 +48,8 @@ Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs 
 
 Override path: `DROID_COMPANION_CONFIG`. Missing file is fine.
 
-Sticky **defaults** + named **profiles** (spawn bundles).  
-Precedence: **CLI flags > `--profile` bundle > `[defaults]` > built-ins**.
+Sticky **`[defaults]`** + user **`[personas.NAME]`**.  
+Precedence: **CLI > persona package > `[defaults]` > built-ins**.
 
 See [examples/config.toml](../examples/config.toml) and [cli-reference](cli-reference.md#config).
 
@@ -56,19 +57,18 @@ See [examples/config.toml](../examples/config.toml) and [cli-reference](cli-refe
 
 | Signal | Default |
 |--------|---------|
-| `--lite` / `tool_profile = "lite"` | read-only (no `--auto`) |
-| role text mentions implement / fix / patch / refactor / write code / … | `--auto low` |
+| lite tool profile | read-only (no `--auto`) |
+| persona / role text mentions implement / fix / patch / … | `--auto low` |
 | otherwise (review / consult) | read-only |
 
-Tracked on the session for later sends: `cwd`, `auto`, `brief`, `format`, `toolProfile`, `role`, `name`.
+Tracked on the session: `cwd`, `auto`, `brief`, `format`, `toolProfile`, `persona`, `role`, `name`.
 
 ## Background and notify (summary)
 
 - Companion **never** applies an internal kill timeout to `droid exec`.
-- Long work: `send --bg` → job files under the state dir → `status` / `result` / `result --wait`.
-- **One in-flight job per name** (second send refused while running).
-- Optional `--idempotency-key` for safe retries after host timeouts.
-- Optional local `--on-done` hook only. **No chat push** into the main Droid session in v0.1.
+- Long work: `send --bg` → job files → `status` / `result` / `result --wait`.
+- **One in-flight job per name**.
+- Optional `--idempotency-key` · optional local `--on-done` only. **No chat push**.
 
 Details: [background-jobs.md](background-jobs.md).
 
@@ -78,8 +78,8 @@ Local runtime only (never git):
 
 ```
 ~/.local/share/droid-companion/   # or $DROID_COMPANION_HOME
-  sessions.json    # name ↔ sessionId + metadata
-  jobs/            # background job metadata + results
+  sessions.json
+  jobs/
 ```
 
 ## Credentials

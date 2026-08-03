@@ -30,10 +30,11 @@ Do not dump raw JSON to the user unless asked; relay by **name**.
 | Layer | What |
 |-------|------|
 | **Companion** | Long-lived named session. Spawn once → many `send`s → `close` when done. |
-| **Contract** | Injected on spawn (unless `--no-contract`): named specialist relay (identity, main-droid relationship, hard stops). |
-| **Role** | `--system-prompt` / `--role` on top of the contract (domain + how hard to push). |
-| **Tool profile** | `full` \| `lite` (`--lite` / config `tool_profile`) — tool surface, not named config. |
-| **Named profile** | `spawn --profile NAME` → `[profiles.NAME]` spawn bundle in config.toml. |
+| **Contract** | Injected on spawn (unless `--no-contract`). |
+| **Persona** | Sealed package: role + tool_profile + format + optional auto. `--persona NAME`. |
+| **Role** | From persona, **or** full replacement via `--role` (never stacked). |
+| **Tool profile** | `full` \| `lite` (`--tool-profile` / `--lite`). |
+| **Format** | Reply shape `prose` \| `findings` (`--format`; default from persona). |
 | **Brief** | Shared brief file path tracked across sends. |
 | **Jobs** | `send --bg` → job files → `status` / `result` / `result --wait`. |
 
@@ -46,68 +47,52 @@ There is no push channel into the main chat. You call the CLI and pull results.
 **Always** pass `--name` (unique, no spaces).
 
 ```sh
-droid-companion spawn --name audit \
-  --system-prompt "You are a senior security auditor. Be concise." \
-  --cwd /path/to/project \
-  --brief brief.md
+droid-companion spawn --name audit --persona auditor --cwd /path/to/project
+droid-companion spawn --name r1 --persona critic
+droid-companion spawn --name fix --persona fixer --cwd .
+droid-companion spawn --name adv --persona advisor
 ```
 
-Presets (preferred for common roles):
+Custom voice (replaces persona role entirely):
 
 ```sh
-droid-companion spawn --name r1 --preset critic
-droid-companion spawn --name sec --preset auditor
-droid-companion spawn --name fix --preset fixer --cwd .
-droid-companion spawn --name adv --preset advisor
+droid-companion spawn --name critic --role "You are a ruthless code reviewer." \
+  --tool-profile lite --format findings
 ```
 
-Named **config profiles** (from `~/.config/droid-companion/config.toml`):
+Built-in personas:
 
-```sh
-droid-companion config show
-droid-companion spawn --name r1 --profile review
-```
+| Name | tool_profile | format | notes |
+|------|--------------|--------|-------|
+| critic | lite | findings | code review |
+| auditor | lite | findings | security |
+| fixer | full | prose | auto=low |
+| advisor | full | prose | tradeoffs |
 
-CLI flags still win over config. Do not invent profile names that are not in the file.
+Config personas: `~/.config/droid-companion/config.toml` → `[personas.NAME]`  
+`droid-companion config show` · `spawn --persona review`
 
-Or freeform:
+Compat: `--preset` / `--profile` = `--persona`.
 
-```sh
-droid-companion spawn --name critic --lite --format findings \
-  --system-prompt "You are a ruthless code reviewer."
-```
+**Autonomy when `--auto` omitted:** lite → read-only; implement-ish role text → `low`; else read-only.
 
-**Autonomy when `--auto` omitted:** `--lite` → read-only; implement-ish role text → `low`; else read-only.
-
-Output includes `announce`. **You MUST write the name out loud** after spawn, e.g.:
-
-> Companion **audit** is up (security auditor). Call with `send audit "…"`.
-
-Keep a one-line **roster** while live:
-
-`audit · security auditor · cwd ~/proj · last just now`
+Output includes `announce`. **You MUST write the name out loud** after spawn. Keep a one-line **roster** while live.
 
 ### send
 
 Accepts **name** (preferred) or sessionId.
 
-- **Short ping:** positional message (max 4000 chars)  
-- **Paragraphs / multi-line:** `--message-file PATH` or `--message-file -` (stdin)  
-- Huge positional argv is **rejected** — put it in a file.
+- **Short ping:** positional message (max 4000 chars, config-overridable)  
+- **Paragraphs / multi-line:** `--message-file PATH` or `--message-file -`  
+- Huge positional argv is **rejected**.
 
 ```sh
 droid-companion send audit "quick: does this API look wrong?"
 droid-companion send audit --message-file ask.md
-droid-companion send audit --message-file - <<'EOF'
-1) …
-2) …
-EOF
 ```
 
-Batch short follow-ups into **one** send when possible.
-
-`--format findings` → `severity` · `path:line` · claim lines.
-
+Batch short follow-ups into **one** send when possible.  
+`--format findings` → `severity` · `path:line` · claim lines.  
 Attribute relays: **audit:** …
 
 ### Background (long work)
@@ -117,86 +102,56 @@ Companion has **no internal kill timeout**. Host shell tools often do.
 ```sh
 droid-companion send audit --bg --message-file deep.md --idempotency-key deep-1
 droid-companion result audit --wait
-# or: droid-companion status audit && droid-companion result audit
 ```
 
-Optional:
-
-- `--response-file PATH` — long answer on disk; JSON points at it  
-- `--on-done 'cmd'` — **local** hook only (not chat push)  
-- `--force` — rare; allow a second send while a job is running  
-
-**Rules:**
-
-1. Anything that might exceed host tool timeout → `--bg`.
-2. Use `result --wait` or poll — **never re-send** the same message after a wait abort.
-3. Same `--idempotency-key` is a safe retry; bare duplicate send is not.
-4. One in-flight job per name (expect error if already running).
-5. **Never kill** companion / `droid` PIDs to “unstick”.
-6. No expecting push into the main Droid session.
-7. Worker is internal `droid-companion _run-job` (same binary); do not invoke it by hand unless debugging.
+**Rules:** long work → `--bg`; never re-send after wait abort; one job per name; never kill droid PIDs; no chat push.
 
 ### list / close
 
 ```sh
 droid-companion list
-droid-companion list --stale
 droid-companion list --stale --older-than 24h
 droid-companion list --prune
-droid-companion list --prune --older-than 7d
 droid-companion close audit
 ```
 
-`list` roster includes `job` / `jobId` / `idleForMs` / `ageMs` / `lastResponsePreview` / `lastResponseFile` / `stale`.
+Roster includes `persona` · `toolProfile` · `format` · `job` / `jobId` · ages.  
+Stale = idle longer than threshold with no running job. Prune untracks only.
 
-- **Stale** = idle longer than `--older-than` (default `7d`) with **no** running job.
-- **`--prune`** untracks stale names only (does not kill running jobs or droid sessions).
-- Health is **cheap** (ages + job pids). No model pong. `--deep` is refused.
-
-`close` = **untrack** from companion state (not a full guarantee that droid wiped disk session data).
-
-### setup / doctor / install-skill
+### setup / doctor / install-skill / config
 
 ```sh
-droid-companion setup              # humans: TTY wizard (text on stdout)
-droid-companion setup --yes --json # scripts/agents: non-interactive JSON
-droid-companion doctor             # checks only (JSON)
-droid-companion install-skill      # skill copy only
+droid-companion setup              # humans: TTY wizard
+droid-companion setup --yes --json # scripts
+droid-companion doctor
+droid-companion config show
+droid-companion install-skill
 ```
-
-**Humans** run `setup` after install. **Agents** use `doctor` / `install-skill` or `setup --yes --json` — do not drive interactive prompts; do not expect a JSON wall from bare `setup` on a TTY.
-
-`install-skill` copies this skill + contract into `~/.factory/skills/droid-companion/`.  
-Run `doctor` when install looks wrong or before first use in a new environment.
 
 ## Workflow (default)
 
-1. Unique **name**: `audit`, `rust-reviewer`, `devil`
+1. Unique **name**
 2. Optional `brief.md`
-3. `spawn --name … --system-prompt "…"` (+ `--cwd` / `--brief` / `--lite` / `--format` / `--auto`)
+3. `spawn --name … --persona …` (+ `--cwd` / `--brief` / overrides)
 4. **Announce** + roster line
 5. `send` (message-file; `--bg` if long)
 6. Keep sending — do **not** respawn
-7. `close` only when the role is finished
-
-User phrases: “ask audit about X”, “second opinion”, “keep that reviewer around.”
+7. `close` only when finished
 
 ## Main droid rules
 
-1. Named companions only — no UUID-first UX.
-2. After spawn: announce + roster in the user transcript.
+1. Named companions only.
+2. After spawn: announce + roster.
 3. Multi-turn by default; close only when done.
-4. Batch questions; short positional pings ok; `--message-file` for long content.
-5. `--lite` (lite tool profile) + `--format findings` for pure second opinions.
-6. Full tool profile + `--auto low` when the companion must edit.
+4. Short positional pings ok; `--message-file` for long content.
+5. `--persona critic` / lite + findings for pure second opinions.
+6. `--persona fixer` (or full tool profile + `--auto low`) when editing.
 7. Relay by name; no raw JSON dumps unless asked.
 8. Long work → `--bg`; never retry a timed-out send without key/status.
 9. JSON control + file content — no chat.md protocol.
-10. Transport/runtime abort (non-zero, structured error with `lastResult` partial): **do not re-send** the same ask into that turn — inspect, or `close` + fresh spawn. `lastResult` is progress, not the verdict.
+10. `--role` replaces persona voice; do not invent personas not in config/built-ins.
 
 ## Notes
 
 - Same credentials as the host (`FACTORY_API_KEY` / droid login).
-- Contract ships with the install (`contract/contract.md`); path may be resolved next to the binary or package root.
-- Cost scales with turns × models; `--lite` reduces tool surface.
-- If a command returns “not implemented”, the installed build is still the docs scaffold — use the private skill path or wait for the core port.
+- Cost scales with turns × models; lite tool profile reduces tool surface.

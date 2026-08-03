@@ -10,14 +10,17 @@ export interface SessionRecord {
   brief?: string;
   cwd?: string;
   auto?: string;
+  /** Reply shape prose|findings */
   format?: ReplyFormat;
-  /** Tool surface full|lite. Prefer this over legacy `profile` if both ever appear. */
+  /** Tool surface full|lite */
   toolProfile?: ToolProfile;
   /**
-   * @deprecated Legacy session field for tool surface; read as toolProfile.
-   * Kept so old sessions.json still loads.
+   * @deprecated Legacy tool-surface field; prefer toolProfile.
    */
   profile?: ToolProfile;
+  /** Persona name used at spawn (builtin or config), if any. */
+  persona?: string;
+  /** Role text actually used (persona role or CLI --role). */
   role?: string;
   lastResponse?: string;
   /** Path from last --response-file send, if any. */
@@ -27,27 +30,34 @@ export interface SessionRecord {
   createdAt: string;
 }
 
+/**
+ * CLI-facing spawn inputs (only fields the user/agent set).
+ * Resolution into a concrete plan happens in resolveSpawnPlan.
+ */
 export interface SpawnOptions {
+  name: string;
+  /** Built-in or config persona name. Aliases: --preset, --profile */
+  persona?: string;
+  /**
+   * Full role replacement (not stacked on persona role).
+   * CLI: --role or --system-prompt (same field).
+   */
+  role?: string;
   model?: string;
   auto?: string;
   cwd?: string;
-  systemPrompt?: string;
   tag?: string;
   reasoningEffort?: string;
   brief?: string;
-  name: string;
   noContract?: boolean;
-  /** true = lite tool surface; undefined = let preset / default decide */
-  lite?: boolean;
-  format?: ReplyFormat;
-  role?: string;
-  /** Applied before spawn; explicit flags still win when already set. */
-  preset?: string;
   /**
-   * Named config profile (`[profiles.<name>]` in config.toml).
-   * Not the tool surface — that is `lite` / `toolProfile`.
+   * Tool surface. Prefer explicit toolProfile; lite=true means toolProfile lite.
+   * lite=false means force full.
    */
-  configProfile?: string;
+  toolProfile?: ToolProfile;
+  lite?: boolean;
+  /** Reply shape override; default from persona or prose */
+  format?: ReplyFormat;
 }
 
 export interface SendOptions {
@@ -85,4 +95,21 @@ export interface StructuredFailure {
   stderr?: string | null;
   errors?: unknown;
   hint?: string;
+}
+
+/** Fully resolved spawn plan after persona + CLI merge. */
+export interface SpawnPlan {
+  name: string;
+  persona: string | null;
+  personaSource: "builtin" | "config" | null;
+  role: string | undefined;
+  toolProfile: ToolProfile;
+  format: ReplyFormat;
+  auto: string | undefined;
+  model?: string;
+  cwd?: string;
+  brief?: string;
+  tag?: string;
+  reasoningEffort?: string;
+  noContract: boolean;
 }

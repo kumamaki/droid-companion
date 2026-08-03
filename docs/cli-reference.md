@@ -42,38 +42,46 @@ droid-companion config show
 |---------|------|
 | `[defaults]` | Sticky spawn + `stale_after` for list |
 | `[defaults.send]` | `max_positional_chars` (default 4000) |
-| `[profiles.<name>]` | Named spawn bundle → `spawn --profile <name>` |
+| `[personas.<name>]` | User persona package → `spawn --persona <name>` |
 
-**Precedence:** CLI flags > named `--profile` > `[defaults]` > built-ins.  
+**Precedence:** CLI flags > persona package > `[defaults]` > built-ins.  
 Missing file = built-ins. Invalid TOML/schema = hard fail (doctor `configOk: false`).
 
-**Naming (do not mix these up):**
+Legacy `[profiles.*]` / `preset=` / bare `profile=full|lite` still load for one transition window.
+
+**Vocabulary:**
 
 | Term | Meaning |
 |------|---------|
-| `tool_profile` / `--lite` | Tool surface: `full` \| `lite` |
-| `--profile NAME` / `[profiles.NAME]` | Named spawn **bundle** from config |
-| `--preset critic\|…` | Built-in role shortcut (can sit inside a bundle) |
+| **persona** | Sealed package: role + tool_profile + format + optional auto |
+| **tool_profile** / `--lite` | Tool surface: `full` \| `lite` |
+| **format** | Reply shape: `prose` \| `findings` |
+| **role** | Specialist voice (`--role` replaces persona role; does not stack) |
 
 Example: [examples/config.toml](../examples/config.toml).
 
 ---
 
-## Presets
+## Personas
 
-| Preset | Defaults |
-|--------|----------|
-| `critic` | lite + findings — ruthless code review |
-| `auditor` | lite + findings — security focus |
-| `fixer` | full + `--auto low` — implement focused fixes |
-| `advisor` | full, read-only default — tradeoffs / recommend |
+Sealed packages. Built-ins ship with the binary; users add more under `[personas.*]`.
+
+| Persona | tool_profile | format | auto | Role |
+|---------|--------------|--------|------|------|
+| `critic` | lite | findings | — | Ruthless code review |
+| `auditor` | lite | findings | — | Security focus |
+| `fixer` | full | prose | `low` | Implement focused fixes |
+| `advisor` | full | prose | — | Tradeoffs / recommend |
 
 ```sh
-droid-companion spawn --name r1 --preset critic
-droid-companion spawn --name r1 --profile review   # from config.toml
+droid-companion spawn --name r1 --persona critic
+droid-companion spawn --name r1 --persona review   # from config.toml
+droid-companion spawn --name r1 --role "…" --tool-profile lite --format findings
 ```
 
-Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps as documented in help.
+`--role` / `--system-prompt` **replaces** the persona role (no stacking).  
+`--format` and `--tool-profile` / `--lite` override package defaults only.  
+Compat aliases for `--persona`: `--preset`, `--profile`.
 
 ---
 
@@ -117,7 +125,7 @@ Skill
   ✓ present     ~/.factory/skills/droid-companion
 
 Next
-  droid-companion spawn --name smoke --preset advisor
+  droid-companion spawn --name smoke --persona advisor
   …
 
 Ready.
@@ -201,16 +209,17 @@ droid-companion spawn --name NAME [options]
 | `--model ID` | Model id |
 | `--auto LEVEL` | `low` \| `medium` \| `high`; inferred if omitted |
 | `--cwd PATH` | Working directory (tracked) |
-| `--system-prompt TEXT` | Role on top of contract |
-| `--role TEXT` | Alias for system-prompt / roster role |
+| `--persona NAME` | Built-in or config persona package |
+| `--role TEXT` | Full role **replacement** (not stacked on persona) |
+| `--system-prompt TEXT` | Alias of `--role` |
 | `--tag NAME` | Session tag (defaults to `--name`) |
 | `--reasoning-effort L` | Passed through to droid |
 | `--brief PATH` | Shared brief file (tracked absolute path) |
-| `--format prose\|findings` | Default reply shape (tracked) |
-| `--lite` | Cheap critique **tool profile** (disables heavy tools) |
+| `--format prose\|findings` | Reply shape (default from persona; tracked) |
+| `--tool-profile full\|lite` | Tool surface |
+| `--lite` | Shorthand for `--tool-profile lite` |
 | `--no-contract` | Skip contract injection |
-| `--preset NAME` | `critic` \| `auditor` \| `fixer` \| `advisor` — fills role/lite/format/auto defaults |
-| `--profile NAME` | Named config profile from `config.toml` `[profiles.NAME]` |
+| `--preset` / `--profile` | Compat aliases of `--persona` |
 
 Name already in use → actionable error (name, session id / last used if known, suggest `close` or another name).
 
@@ -227,6 +236,8 @@ Example result shape:
   "auto": null,
   "format": "findings",
   "toolProfile": "lite",
+  "persona": "critic",
+  "personaSource": "builtin",
   "contract": true,
   "announce": "Companion ready: audit (…). Call with: droid-companion send audit \"…\""
 }
@@ -323,6 +334,7 @@ droid-companion list [--stale] [--prune] [--older-than DUR] [--deep]
     {
       "name": "audit",
       "role": "security auditor",
+      "persona": "auditor",
       "cwd": "/path",
       "auto": null,
       "toolProfile": "lite",

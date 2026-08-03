@@ -2,7 +2,7 @@
 /**
  * droid-companion — named multi-turn companion sessions for Factory Droid.
  *
- * Core: spawn / send / list / close / doctor / setup / install-skill
+ * Core: spawn / send / list / close / doctor / setup / install-skill / config
  * Jobs: send --bg / status / result / result --wait / _run-job
  * Recipes deferred.
  */
@@ -11,8 +11,9 @@ import { parseArgs, parseFormat, positionalNonFlags, validateName } from "./lib/
 import { loadConfig } from "./lib/config";
 import { DroidExecError } from "./lib/droid-exec";
 import { PACKAGE_NAME, VERSION } from "./lib/paths";
-import { PRESET_NAMES, presetSummary } from "./lib/presets";
+import { BUILTIN_PERSONA_NAMES, personaSummary } from "./lib/personas";
 import { readMessageInput } from "./lib/prompts";
+import type { ToolProfile } from "./lib/types";
 import { cmdClose } from "./commands/close";
 import { cmdConfigShow } from "./commands/config-show";
 import { cmdDoctor } from "./commands/doctor";
@@ -32,6 +33,35 @@ function die(payload: string | Record<string, unknown>, exitCode = 1): never {
     console.error(JSON.stringify(payload));
   }
   process.exit(exitCode);
+}
+
+function parseToolProfileFlag(value: unknown): ToolProfile | undefined {
+  if (value === undefined) return undefined;
+  if (value === "full" || value === "lite") return value;
+  throw new Error(`Invalid --tool-profile <${value}>. Use full|lite.`);
+}
+
+/**
+ * Persona from --persona, with aliases --preset and --profile (one-version compat).
+ * If multiple are set they must agree.
+ */
+function resolvePersonaCliFlag(opts: Record<string, string | string[] | boolean>): string | undefined {
+  const persona = typeof opts.persona === "string" ? opts.persona : undefined;
+  const preset = typeof opts.preset === "string" ? opts.preset : undefined;
+  const profile = typeof opts.profile === "string" ? opts.profile : undefined;
+  const values = [persona, preset, profile].filter(
+    (v): v is string => typeof v === "string" && v.length > 0,
+  );
+  if (values.length === 0) return undefined;
+  const first = values[0];
+  for (const v of values) {
+    if (v !== first) {
+      throw new Error(
+        `Conflicting persona flags: --persona/--preset/--profile must match (got <${values.join(", ")}>)`,
+      );
+    }
+  }
+  return first;
 }
 
 function printHelp(): void {
@@ -71,14 +101,20 @@ Interface:
   Optional config: ~/.config/droid-companion/config.toml
 
 spawn options:
-  --name NAME (required)  --preset ${PRESET_NAMES.join("|")}
-  --profile NAME          Named config profile ([profiles.NAME])
-  --model ID  --auto LEVEL  --cwd PATH
-  --system-prompt TEXT    --role TEXT  --tag NAME  --reasoning-effort L
-  --brief PATH  --format prose|findings  --lite  --no-contract
+  --name NAME (required)
+  --persona NAME          Built-in or config persona (sealed package)
+  --role TEXT             Full role replacement (not stacked on persona)
+  --system-prompt TEXT    Alias of --role
+  --tool-profile full|lite
+  --lite                  Shorthand for --tool-profile lite
+  --format prose|findings Reply shape (default from persona)
+  --model ID  --auto LEVEL  --cwd PATH  --brief PATH
+  --tag NAME  --reasoning-effort L  --no-contract
 
-presets:
-${presetSummary()}
+  Compat aliases (same as --persona): --preset · --profile
+
+built-in personas:
+${personaSummary()}
 
 send options:
   send <name> "short message"   # short positional ok (max from config, default 4000)
@@ -144,7 +180,6 @@ async function main(): Promise<void> {
             force: opts.force === true,
           });
         } catch (err) {
-          // install-skill already wrote JSON error to stderr when refusing legacy
           const msg = err instanceof Error ? err.message : String(err);
           if (!msg.includes("legacy companion.ts")) {
             die({ error: msg }, 1);
@@ -167,31 +202,31 @@ async function main(): Promise<void> {
         const opts = parseArgs(rest);
         if (!opts.name || typeof opts.name !== "string") {
           die(
-            "Usage: spawn --name NAME [--profile NAME] [--preset critic|auditor|fixer|advisor] [options]",
+            `Usage: spawn --name NAME [--persona ${BUILTIN_PERSONA_NAMES.join("|")}|config] [options]`,
           );
         }
-        // Detect explicit format/lite/auto so preset doesn't fight unknown — applyPreset
-        // only fills undefined. parseFormat(undefined) is fine.
-        const explicitFormat = parseFormat(opts.format);
+        const persona = resolvePersonaCliFlag(opts);
+        const roleText =
+          (opts.role as string | undefined) ??
+          (opts["system-prompt"] as string | undefined);
+        const toolProfile =
+          parseToolProfileFlag(opts["tool-profile"]) ??
+          (opts.lite === true ? "lite" : undefined);
+
         await cmdSpawn({
           name: validateName(opts.name),
+          persona,
+          role: roleText,
           model: opts.model as string | undefined,
           auto: opts.auto as string | undefined,
           cwd: opts.cwd as string | undefined,
-          systemPrompt:
-            (opts["system-prompt"] as string | undefined) ??
-            (opts.role as string | undefined),
           tag: opts.tag as string | undefined,
           reasoningEffort: opts["reasoning-effort"] as string | undefined,
           brief: opts.brief as string | undefined,
           noContract: opts["no-contract"] === true,
           lite: opts.lite === true ? true : undefined,
-          format: explicitFormat,
-          role:
-            (opts.role as string | undefined) ??
-            (opts["system-prompt"] as string | undefined),
-          preset: opts.preset as string | undefined,
-          configProfile: opts.profile as string | undefined,
+          toolProfile,
+          format: parseFormat(opts.format),
         });
         break;
       }
@@ -200,7 +235,9 @@ async function main(): Promise<void> {
         const opts = parseArgs(rest);
         const positionals = positionalNonFlags(rest);
         const ref = positionals[0];
-        if (!ref) die("Usage: send <name|sessionId> [message] [--message-file PATH] [--bg]");
+        if (!ref) {
+          die("Usage: send <name|sessionId> [message] [--message-file PATH] [--bg]");
+        }
         const config = loadConfig();
         const message = readMessageInput(
           positionals[1],

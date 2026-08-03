@@ -193,7 +193,7 @@ function printCheatSheet(doctorOk: boolean): void {
   if (!doctorOk) {
     out("  (spawn will fail until environment is green)");
   }
-  out("  droid-companion spawn --name smoke --preset advisor");
+  out("  droid-companion spawn --name smoke --persona advisor");
   out('  droid-companion send smoke "What should I know about companions?"');
   out("  droid-companion list");
   out("  droid-companion close smoke");
@@ -427,7 +427,7 @@ function buildSummary(
       detail: skill.detail,
     },
     next: [
-      "droid-companion spawn --name smoke --preset advisor",
+      "droid-companion spawn --name smoke --persona advisor",
       'droid-companion send smoke "What should I know about companions?"',
       "droid-companion list",
       "droid-companion close smoke",

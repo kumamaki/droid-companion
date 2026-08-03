@@ -38,18 +38,16 @@ Refresh from `droid-companion list` → `roster` when unsure.
 ### Cheap review
 
 ```sh
-droid-companion spawn --name critic --lite --format findings \
-  --system-prompt "You are a ruthless code reviewer."
-# or, with config.toml [profiles.review]:
-# droid-companion spawn --name critic --profile review
+droid-companion spawn --name critic --persona critic
+# or custom role (replaces persona voice entirely):
+# droid-companion spawn --name critic --role "…" --tool-profile lite --format findings
 droid-companion send critic --message-file ask.md
 ```
 
 ### Companion that edits
 
 ```sh
-droid-companion spawn --name fixer --auto low --cwd . \
-  --system-prompt "You implement focused fixes."
+droid-companion spawn --name fixer --persona fixer --cwd .
 droid-companion send fixer --message-file task.md
 ```
 
@@ -80,8 +78,8 @@ droid-companion send audit --bg --message-file deep-ask.md \
 2. After spawn: **announce + roster** in the user transcript.
 3. Multi-turn by default; **close only when done** (`close` = untrack; see cli-reference).
 4. Short pings may be positional (`send audit "quick?"`). Prefer **`--message-file`** (or stdin) for multi-line / long content; huge positional argv is rejected.
-5. **`--lite`** (lite tool profile) **+ `--format findings`** for pure second opinions on small diffs.
-6. Full tool profile + **`--auto low`** (or higher) when the companion must edit.
+5. **`--persona critic`** (or lite tool profile + findings) for pure second opinions.
+6. **`--persona fixer`** (full tool profile + auto low) when the companion must edit.
 7. Relay by **name**; do not dump raw JSON to the user unless asked.
 8. **`list --stale` / `list --prune`** use cheap age + job busy only (default older-than `7d`; no model pong). Prune untracks; it does not kill running jobs.
 

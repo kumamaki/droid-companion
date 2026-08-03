@@ -7,6 +7,7 @@ export const DEFAULT_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 export interface RosterEntry {
   name: string;
   role: string | null;
+  persona: string | null;
   cwd: string | null;
   auto: string | null;
   toolProfile: string | null;
@@ -101,6 +102,7 @@ export function buildRosterEntry(
   return {
     name: session.name,
     role: session.role ?? null,
+    persona: session.persona ?? null,
     cwd: session.cwd ?? null,
     auto: session.auto ?? null,
     toolProfile: session.toolProfile ?? session.profile ?? null,

@@ -4,10 +4,10 @@ import { join } from "path";
 import { tmpdir } from "os";
 import {
   effectiveStaleAfter,
-  getNamedProfile,
   loadConfig,
-  mergeSpawnOptions,
   parseConfigObject,
+  resolvePersona,
+  resolveSpawnPlan,
 } from "../src/lib/config";
 import type { SpawnOptions } from "../src/lib/types";
 
@@ -21,25 +21,24 @@ describe("parseConfigObject", () => {
     expect(cfg.staleAfter).toBe("7d");
     expect(cfg.staleAfterMs).toBe(7 * 86_400_000);
     expect(cfg.maxPositionalChars).toBe(4000);
-    expect(cfg.profiles).toEqual({});
+    expect(cfg.personas).toEqual({});
   });
 
-  test("parses defaults + profiles", () => {
+  test("parses defaults + personas", () => {
     const cfg = parseConfigObject(
       {
         defaults: {
           stale_after: "24h",
-          preset: "advisor",
+          persona: "advisor",
           format: "prose",
           tool_profile: "full",
           send: { max_positional_chars: 100 },
         },
-        profiles: {
+        personas: {
           review: {
-            preset: "critic",
+            role: "be mean",
             format: "findings",
             tool_profile: "lite",
-            system_prompt: "be mean",
           },
         },
       },
@@ -48,22 +47,49 @@ describe("parseConfigObject", () => {
     expect(cfg.staleAfter).toBe("24h");
     expect(cfg.staleAfterMs).toBe(24 * 3_600_000);
     expect(cfg.maxPositionalChars).toBe(100);
-    expect(cfg.defaults.preset).toBe("advisor");
+    expect(cfg.defaults.persona).toBe("advisor");
     expect(cfg.defaults.toolProfile).toBe("full");
-    expect(cfg.profiles.review.preset).toBe("critic");
-    expect(cfg.profiles.review.toolProfile).toBe("lite");
-    expect(cfg.profiles.review.systemPrompt).toBe("be mean");
+    expect(cfg.personas.review.role).toBe("be mean");
+    expect(cfg.personas.review.toolProfile).toBe("lite");
+    expect(cfg.personas.review.format).toBe("findings");
   });
 
-  test("legacy profile= still means tool_profile", () => {
+  test("extends builtin persona", () => {
     const cfg = parseConfigObject(
-      { defaults: { profile: "lite" } },
+      {
+        personas: {
+          fix: { extends: "fixer", cwd: "/work" },
+        },
+      },
       null,
     );
-    expect(cfg.defaults.toolProfile).toBe("lite");
+    const p = cfg.personas.fix;
+    expect(p.role).toContain("focused fixes");
+    expect(p.toolProfile).toBe("full");
+    expect(p.format).toBe("prose");
+    expect(p.auto).toBe("low");
+    expect(p.cwd).toBe("/work");
+    expect(p.source).toBe("config");
   });
 
-  test("rejects bad format / stale / profile name", () => {
+  test("legacy profiles + preset still load", () => {
+    const cfg = parseConfigObject(
+      {
+        defaults: { preset: "advisor", profile: "lite" },
+        profiles: {
+          old: { preset: "critic", system_prompt: "override voice" },
+        },
+      },
+      null,
+    );
+    expect(cfg.defaults.persona).toBe("advisor");
+    expect(cfg.defaults.toolProfile).toBe("lite");
+    expect(cfg.personas.old.role).toBe("override voice");
+    expect(cfg.personas.old.toolProfile).toBe("lite");
+    expect(cfg.personas.old.format).toBe("findings");
+  });
+
+  test("rejects bad format / stale / persona name", () => {
     expect(() =>
       parseConfigObject({ defaults: { format: "json" } }, null),
     ).toThrow(/prose\|findings/);
@@ -71,7 +97,10 @@ describe("parseConfigObject", () => {
       parseConfigObject({ defaults: { stale_after: "week" } }, null),
     ).toThrow(/stale_after/);
     expect(() =>
-      parseConfigObject({ profiles: { "bad name": { preset: "critic" } } }, null),
+      parseConfigObject(
+        { personas: { "bad name": { role: "x" } } },
+        null,
+      ),
     ).toThrow(/whitespace/);
   });
 });
@@ -91,18 +120,17 @@ describe("loadConfig", () => {
       `
 [defaults]
 stale_after = "30m"
-preset = "fixer"
+persona = "fixer"
 
-[profiles.review]
-preset = "critic"
-tool_profile = "lite"
+[personas.review]
+extends = "critic"
 `,
     );
     const cfg = loadConfig(path);
     expect(cfg.exists).toBe(true);
     expect(cfg.staleAfterMs).toBe(30 * 60_000);
-    expect(cfg.defaults.preset).toBe("fixer");
-    expect(getNamedProfile(cfg, "review").preset).toBe("critic");
+    expect(cfg.defaults.persona).toBe("fixer");
+    expect(resolvePersona(cfg, "review").format).toBe("findings");
   });
 
   test("bad TOML fails hard", () => {
@@ -113,57 +141,83 @@ tool_profile = "lite"
   });
 });
 
-describe("mergeSpawnOptions", () => {
+describe("resolveSpawnPlan", () => {
   const cfg = parseConfigObject(
     {
       defaults: {
-        preset: "advisor",
-        format: "prose",
-        tool_profile: "full",
+        persona: "advisor",
         cwd: "/default",
       },
-      profiles: {
+      personas: {
         review: {
-          preset: "critic",
-          format: "findings",
+          role: "custom reviewer",
           tool_profile: "lite",
-          system_prompt: "reviewer",
+          format: "findings",
         },
       },
     },
     null,
   );
 
-  test("defaults fill when no profile/CLI", () => {
-    const m = mergeSpawnOptions(baseCli(), cfg);
-    expect(m.preset).toBe("advisor");
-    expect(m.format).toBe("prose");
-    expect(m.lite).toBe(false); // full → force not-lite
-    expect(m.cwd).toBe("/default");
+  test("defaults pick persona when CLI omits", () => {
+    const plan = resolveSpawnPlan(baseCli(), cfg);
+    expect(plan.persona).toBe("advisor");
+    expect(plan.personaSource).toBe("builtin");
+    expect(plan.toolProfile).toBe("full");
+    expect(plan.format).toBe("prose");
+    expect(plan.cwd).toBe("/default");
+    expect(plan.role).toContain("advisor");
   });
 
-  test("named profile beats defaults", () => {
-    const m = mergeSpawnOptions(
-      baseCli(),
-      cfg,
-      getNamedProfile(cfg, "review"),
-    );
-    expect(m.preset).toBe("critic");
-    expect(m.format).toBe("findings");
-    expect(m.lite).toBe(true);
-    expect(m.systemPrompt).toBe("reviewer");
-    expect(m.cwd).toBe("/default"); // still from defaults
+  test("config persona beats defaults", () => {
+    const plan = resolveSpawnPlan(baseCli({ persona: "review" }), cfg);
+    expect(plan.persona).toBe("review");
+    expect(plan.personaSource).toBe("config");
+    expect(plan.role).toBe("custom reviewer");
+    expect(plan.toolProfile).toBe("lite");
+    expect(plan.format).toBe("findings");
   });
 
-  test("CLI beats named profile", () => {
-    const m = mergeSpawnOptions(
-      baseCli({ format: "prose", lite: false, preset: "fixer" }),
+  test("CLI role replaces persona role (no stack)", () => {
+    const plan = resolveSpawnPlan(
+      baseCli({ persona: "review", role: "only this voice" }),
       cfg,
-      getNamedProfile(cfg, "review"),
     );
-    expect(m.preset).toBe("fixer");
-    expect(m.format).toBe("prose");
-    expect(m.lite).toBe(false);
+    expect(plan.role).toBe("only this voice");
+    expect(plan.role).not.toContain("custom reviewer");
+    // package still supplies tool/format unless overridden
+    expect(plan.toolProfile).toBe("lite");
+    expect(plan.format).toBe("findings");
+  });
+
+  test("CLI format and tool-profile override persona", () => {
+    const plan = resolveSpawnPlan(
+      baseCli({
+        persona: "review",
+        format: "prose",
+        toolProfile: "full",
+      }),
+      cfg,
+    );
+    expect(plan.format).toBe("prose");
+    expect(plan.toolProfile).toBe("full");
+  });
+
+  test("builtin critic", () => {
+    const plan = resolveSpawnPlan(
+      baseCli({ persona: "critic" }),
+      parseConfigObject({}, null),
+    );
+    expect(plan.persona).toBe("critic");
+    expect(plan.format).toBe("findings");
+    expect(plan.toolProfile).toBe("lite");
+    expect(plan.auto).toBeUndefined();
+  });
+
+  test("unknown persona errors", () => {
+    expect(() =>
+      resolveSpawnPlan(baseCli({ persona: "nope" }), cfg),
+    ).toThrow(/Unknown persona/);
   });
 });
 

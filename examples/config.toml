@@ -2,17 +2,23 @@
 # Install: copy to ~/.config/droid-companion/config.toml
 # Override path: DROID_COMPANION_CONFIG=/path/to/config.toml
 #
-# Precedence: CLI flags > [profiles.NAME] > [defaults] > built-ins
+# Precedence: CLI flags > persona package > [defaults] > built-ins
 # Missing file is fine — built-in defaults apply.
+#
+# Vocabulary:
+#   persona       sealed package (role + tool_profile + format + auto)
+#   tool_profile  full | lite  (tool surface)
+#   format        prose | findings  (reply shape)
+#   --role        full role replacement (does not stack on persona role)
 
 [defaults]
 # list --stale / --prune threshold when --older-than is omitted
 stale_after = "7d"
 
-# Optional sticky spawn defaults (omit any key to keep built-ins)
-# preset = "advisor"          # critic | auditor | fixer | advisor
-# format = "prose"            # prose | findings
-# tool_profile = "full"       # tool surface: full | lite  (not the same as [profiles.*])
+# Optional sticky when spawn omits --persona:
+# persona = "advisor"
+# tool_profile = "full"
+# format = "prose"
 # cwd = "~/Work/current"
 # brief = "brief.md"
 
@@ -20,19 +26,20 @@ stale_after = "7d"
 # Max chars for positional send messages; longer → --message-file
 max_positional_chars = 4000
 
-# Named spawn bundles: droid-companion spawn --name r1 --profile review
-[profiles.review]
-preset = "critic"
-format = "findings"
+# Built-ins (no config needed): critic | auditor | fixer | advisor
+#   droid-companion spawn --name r1 --persona critic
+
+# User personas — full custom role:
+[personas.review]
+role = """
+You are a ruthless API reviewer.
+Prefer concrete findings with paths and severity.
+"""
 tool_profile = "lite"
+format = "findings"
 
-[profiles.fix]
-preset = "fixer"
-auto = "low"
+# Fork a built-in (keeps role unless you set role=):
+[personas.fix]
+extends = "fixer"
 # cwd = "."
-
-# Freeform example (no built-in preset):
-# [profiles.api]
-# system_prompt = "You review public API design. Prefer stability and clarity."
-# format = "findings"
-# tool_profile = "lite"
+# auto = "low"

@@ -36,7 +36,7 @@ export type DoctorCheckResult = {
     configError: string | null;
     configStaleAfter: string | null;
     configStaleAfterMs: number | null;
-    configProfileNames: string[];
+    configPersonaNames: string[];
     authStatus: "credentialsPresent" | "credentialsMissing";
     authVerified: false;
     authSignals: string[];
@@ -110,14 +110,14 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
   let configError: string | null = null;
   let configStaleAfter: string | null = null;
   let configStaleAfterMs: number | null = null;
-  let configProfileNames: string[] = [];
+  let configPersonaNames: string[] = [];
   try {
     const cfg = loadConfig(cfgPath);
     configPresent = cfg.exists;
     configOk = true;
     configStaleAfter = cfg.staleAfter;
     configStaleAfterMs = cfg.staleAfterMs;
-    configProfileNames = Object.keys(cfg.profiles);
+    configPersonaNames = Object.keys(cfg.personas);
   } catch (err) {
     configPresent = true;
     configOk = false;
@@ -150,7 +150,7 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
       configError,
       configStaleAfter,
       configStaleAfterMs,
-      configProfileNames,
+      configPersonaNames,
       authStatus,
       authVerified: false,
       authSignals: auth.signals,
