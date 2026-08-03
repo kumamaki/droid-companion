@@ -63,21 +63,29 @@ export function parsePreset(value: unknown): PresetName | undefined {
 }
 
 /**
- * Apply preset defaults. Explicit CLI flags win over preset
- * (lite/format/auto/systemPrompt already set by caller stay).
+ * Apply preset defaults. Explicit CLI / config values win over preset
+ * (lite/format/auto/systemPrompt already set stay).
+ *
+ * lite semantics:
+ * - true  → force lite
+ * - false → force full (do not take preset.lite)
+ * - undefined → preset may set lite
  */
 export function applyPreset(
   opts: SpawnOptions,
   presetName: PresetName,
 ): SpawnOptions {
   const preset = PRESETS[presetName];
+  let lite: boolean | undefined;
+  if (opts.lite === true) lite = true;
+  else if (opts.lite === false) lite = false;
+  else lite = preset.lite ? true : undefined;
+
   return {
     ...opts,
     systemPrompt: opts.systemPrompt ?? preset.systemPrompt,
     role: opts.role ?? opts.systemPrompt ?? preset.systemPrompt,
-    // only force lite when preset wants it and user did not pass --lite already as true;
-    // user cannot force full via flag yet — omit --lite and use a non-lite preset
-    lite: opts.lite === true || preset.lite,
+    lite,
     format: opts.format ?? preset.format,
     auto: opts.auto ?? preset.auto,
   };

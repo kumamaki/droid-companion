@@ -108,15 +108,19 @@ export function writeSystemPromptFile(name: string, contents: string): string {
 }
 
 /**
- * Max characters allowed as a positional send message.
+ * Built-in max characters for a positional send message.
  * Longer content must use --message-file (interface: files for paragraphs).
+ * Overridable via config [defaults.send].max_positional_chars.
  */
 export const MAX_POSITIONAL_MESSAGE_CHARS = 4000;
 
-export function assertPositionalMessageSize(message: string): void {
-  if (message.length <= MAX_POSITIONAL_MESSAGE_CHARS) return;
+export function assertPositionalMessageSize(
+  message: string,
+  maxChars: number = MAX_POSITIONAL_MESSAGE_CHARS,
+): void {
+  if (message.length <= maxChars) return;
   throw new Error(
-    `Positional message too long (<${message.length}> chars; max <${MAX_POSITIONAL_MESSAGE_CHARS}>). ` +
+    `Positional message too long (<${message.length}> chars; max <${maxChars}>). ` +
       `Put paragraphs in a file and pass --message-file PATH (or --message-file - for stdin).`,
   );
 }
@@ -125,6 +129,7 @@ export function readMessageInput(
   positional: string | undefined,
   messageFile: string | undefined,
   cwd?: string,
+  maxPositionalChars: number = MAX_POSITIONAL_MESSAGE_CHARS,
 ): string {
   if (messageFile) {
     const path =
@@ -144,7 +149,7 @@ export function readMessageInput(
     return text.replace(/\n$/, "");
   }
   if (positional !== undefined && positional !== "") {
-    assertPositionalMessageSize(positional);
+    assertPositionalMessageSize(positional, maxPositionalChars);
     return positional;
   }
   throw new Error(

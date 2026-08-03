@@ -40,6 +40,8 @@ Refresh from `droid-companion list` → `roster` when unsure.
 ```sh
 droid-companion spawn --name critic --lite --format findings \
   --system-prompt "You are a ruthless code reviewer."
+# or, with config.toml [profiles.review]:
+# droid-companion spawn --name critic --profile review
 droid-companion send critic --message-file ask.md
 ```
 

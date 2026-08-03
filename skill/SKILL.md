@@ -59,6 +59,15 @@ droid-companion spawn --name fix --preset fixer --cwd .
 droid-companion spawn --name adv --preset advisor
 ```
 
+Named **config profiles** (from `~/.config/droid-companion/config.toml`):
+
+```sh
+droid-companion config show
+droid-companion spawn --name r1 --profile review
+```
+
+CLI flags still win over config. Do not invent profile names that are not in the file.
+
 Or freeform:
 
 ```sh

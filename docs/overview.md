@@ -39,6 +39,19 @@ Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs 
 
 **Recipes (later):** multi-agent one-shots on top of core — `discuss` (two-sided debate), `jury` (parallel multi-model), `vision` (image paths via Read). Not the headline product. Prefer `send --images` over a vision verb.
 
+## Config (optional)
+
+```
+~/.config/droid-companion/config.toml
+```
+
+Override path: `DROID_COMPANION_CONFIG`. Missing file is fine.
+
+Sticky **defaults** + named **profiles** (spawn bundles).  
+Precedence: **CLI flags > `--profile` bundle > `[defaults]` > built-ins**.
+
+See [examples/config.toml](../examples/config.toml) and [cli-reference](cli-reference.md#config).
+
 ## Autonomy defaults (when `--auto` omitted)
 
 | Signal | Default |

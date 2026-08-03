@@ -141,9 +141,18 @@ function printDoctorHuman(doctor: DoctorCheckResult): void {
   if (!authOk) {
     out(`             → ${c.authNote}`);
   }
+  const cfgLabel = c.configPresent
+    ? homePath(c.configPath)
+    : `${homePath(c.configPath)} (missing — using built-ins)`;
+  out(`  ${mark(c.configOk)} config     ${cfgLabel}`);
+  if (!c.configOk && c.configError) {
+    out(`             → ${c.configError}`);
+  } else if (c.configOk && c.configStaleAfter) {
+    out(`             stale_after=${c.configStaleAfter}`);
+  }
   out();
   if (!doctor.ok) {
-    out("Critical checks failed — fix droid / contract / state before spawn.");
+    out("Critical checks failed — fix droid / contract / state / config before spawn.");
     out();
   }
 }
@@ -188,6 +197,7 @@ function printCheatSheet(doctorOk: boolean): void {
   out('  droid-companion send smoke "What should I know about companions?"');
   out("  droid-companion list");
   out("  droid-companion close smoke");
+  out("  optional: ~/.config/droid-companion/config.toml  (see examples/config.toml)");
   out();
   out("Long work:  send --bg · result --wait  (never re-send after a timeout)");
   out("Docs:       docs/agent-guide.md · skill name: droid-companion");
@@ -421,6 +431,7 @@ function buildSummary(
       'droid-companion send smoke "What should I know about companions?"',
       "droid-companion list",
       "droid-companion close smoke",
+      "optional config: ~/.config/droid-companion/config.toml",
     ],
   };
 }

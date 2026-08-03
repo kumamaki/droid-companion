@@ -38,6 +38,7 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 | Atomic state + lock | Concurrent spawn/send safety |
 | CI | typecheck · oxlint · bun:test · cli smoke |
 | Release script | `scripts/release.sh` + checklist |
+| XDG TOML config | defaults + named profiles; `config show`; no auto-prune |
 
 ## P2 — recipes (only if demanded)
 

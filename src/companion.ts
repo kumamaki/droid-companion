@@ -8,11 +8,13 @@
  */
 
 import { parseArgs, parseFormat, positionalNonFlags, validateName } from "./lib/args";
+import { loadConfig } from "./lib/config";
 import { DroidExecError } from "./lib/droid-exec";
 import { PACKAGE_NAME, VERSION } from "./lib/paths";
 import { PRESET_NAMES, presetSummary } from "./lib/presets";
 import { readMessageInput } from "./lib/prompts";
 import { cmdClose } from "./commands/close";
+import { cmdConfigShow } from "./commands/config-show";
 import { cmdDoctor } from "./commands/doctor";
 import { cmdInstallSkill } from "./commands/install-skill";
 import { cmdList } from "./commands/list";
@@ -45,8 +47,9 @@ Usage:
 
 Commands:
   setup                  First-run wizard (doctor → skill → cheat sheet)
-  doctor                 Check droid, contract, and state directory
+  doctor                 Check droid, contract, state, config
   install-skill          Copy skill + contract into ~/.factory/skills
+  config show            Resolved config (JSON)
   spawn --name NAME      Create a named companion
   send <name> …          Message a companion
   list [--stale|--prune] Roster / sessions (cheap health; no model pong)
@@ -65,9 +68,11 @@ Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
   Short pings may be positional; long content must use --message-file.
   No internal kill timeout. Long work: send --bg → status / result --wait.
+  Optional config: ~/.config/droid-companion/config.toml
 
 spawn options:
   --name NAME (required)  --preset ${PRESET_NAMES.join("|")}
+  --profile NAME          Named config profile ([profiles.NAME])
   --model ID  --auto LEVEL  --cwd PATH
   --system-prompt TEXT    --role TEXT  --tag NAME  --reasoning-effort L
   --brief PATH  --format prose|findings  --lite  --no-contract
@@ -76,7 +81,7 @@ presets:
 ${presetSummary()}
 
 send options:
-  send <name> "short message"   # short positional ok (max 4000 chars)
+  send <name> "short message"   # short positional ok (max from config, default 4000)
   --message-file PATH|-         # required for long / multi-line content
   --images PATHS  --model ID  --auto LEVEL
   --cwd PATH  --brief PATH  --format prose|findings
@@ -86,7 +91,7 @@ send options:
 list options:
   --stale                 Show companions idle longer than --older-than
   --prune                 Untrack stale companions (never kills running jobs)
-  --older-than DUR        Stale threshold (default 7d; e.g. 24h, 30m, ms)
+  --older-than DUR        Stale threshold (config defaults.stale_after or 7d)
 
 result options:
   --wait  --poll-ms N
@@ -94,7 +99,7 @@ result options:
 close options:
   --purge                 Stop running jobs + remove job files for that session
 
-Docs: README.md · docs/ · examples/
+Docs: README.md · docs/ · examples/config.toml
 `);
 }
 
@@ -149,10 +154,21 @@ async function main(): Promise<void> {
         break;
       }
 
+      case "config": {
+        const sub = positionalNonFlags(rest)[0] ?? "show";
+        if (sub !== "show") {
+          die("Usage: config show");
+        }
+        await cmdConfigShow();
+        break;
+      }
+
       case "spawn": {
         const opts = parseArgs(rest);
         if (!opts.name || typeof opts.name !== "string") {
-          die("Usage: spawn --name NAME [--preset critic|auditor|fixer|advisor] [options]");
+          die(
+            "Usage: spawn --name NAME [--profile NAME] [--preset critic|auditor|fixer|advisor] [options]",
+          );
         }
         // Detect explicit format/lite/auto so preset doesn't fight unknown — applyPreset
         // only fills undefined. parseFormat(undefined) is fine.
@@ -175,6 +191,7 @@ async function main(): Promise<void> {
             (opts.role as string | undefined) ??
             (opts["system-prompt"] as string | undefined),
           preset: opts.preset as string | undefined,
+          configProfile: opts.profile as string | undefined,
         });
         break;
       }
@@ -184,10 +201,12 @@ async function main(): Promise<void> {
         const positionals = positionalNonFlags(rest);
         const ref = positionals[0];
         if (!ref) die("Usage: send <name|sessionId> [message] [--message-file PATH] [--bg]");
+        const config = loadConfig();
         const message = readMessageInput(
           positionals[1],
           opts["message-file"] as string | undefined,
           opts.cwd as string | undefined,
+          config.maxPositionalChars,
         );
         await cmdSend(ref, message, {
           images: opts.images as string[] | undefined,

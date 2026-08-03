@@ -95,6 +95,16 @@ async function main(): Promise<void> {
     assert(typeof listJson.olderThanMs === "number", "list.olderThanMs");
     console.log("ok: list");
 
+    const cfgShow = await run(["config", "show"]);
+    const cfgJson = JSON.parse(cfgShow.stdout) as {
+      exists: boolean;
+      staleAfter: string;
+      maxPositionalChars: number;
+    };
+    assert(cfgJson.exists === false || typeof cfgJson.staleAfter === "string", "config show shape");
+    assert(typeof cfgJson.maxPositionalChars === "number", "config maxPositionalChars");
+    console.log("ok: config show");
+
     // Seed one stale + one fresh session for list --stale / --prune
     const now = Date.now();
     writeFileSync(

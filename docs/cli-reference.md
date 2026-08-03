@@ -19,12 +19,39 @@ Version: `droid-companion --version` → plain text version string (also in doct
 | `send` | Message existing companion (+ `--bg`) | implemented |
 | `list` | Roster + sessions | implemented |
 | `close` | Untrack companion (see below) | implemented |
-| `doctor` | Environment checks | implemented |
+| `doctor` | Environment checks (includes config) | implemented |
+| `config show` | Resolved config JSON | implemented |
 | `install-skill` | Copy skill + contract into Factory skills dir | implemented |
 | `status` | Background job status | implemented |
 | `result` | Background job result (`--wait`) | implemented |
 
 Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadmap.md).
+
+---
+
+## Config
+
+Optional TOML at `~/.config/droid-companion/config.toml`  
+(`DROID_COMPANION_CONFIG` overrides the path).
+
+```sh
+droid-companion config show
+```
+
+| Section | Role |
+|---------|------|
+| `[defaults]` | Sticky spawn + `stale_after` for list |
+| `[defaults.send]` | `max_positional_chars` (default 4000) |
+| `[profiles.<name>]` | Named spawn bundle → `spawn --profile <name>` |
+
+**Precedence:** CLI flags > named `--profile` > `[defaults]` > built-ins.  
+Missing file = built-ins. Invalid TOML/schema = hard fail (doctor `configOk: false`).
+
+**Naming:** config `profile = "lite"|"full"` is the **tool surface**.  
+CLI `--profile NAME` is a **named config bundle** (`[profiles.NAME]`).  
+Built-in `--preset critic|…` is separate and can be set inside a bundle.
+
+Example: [examples/config.toml](../examples/config.toml).
 
 ---
 
@@ -39,6 +66,7 @@ Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadm
 
 ```sh
 droid-companion spawn --name r1 --preset critic
+droid-companion spawn --name r1 --profile review   # from config.toml
 ```
 
 Explicit `--system-prompt`, `--format`, `--auto`, `--lite` override or fill gaps as documented in help.
@@ -178,6 +206,7 @@ droid-companion spawn --name NAME [options]
 | `--lite` | Cheap critique profile |
 | `--no-contract` | Skip contract injection |
 | `--preset NAME` | `critic` \| `auditor` \| `fixer` \| `advisor` — fills role/lite/format/auto defaults |
+| `--profile NAME` | Named config profile from `config.toml` `[profiles.NAME]` |
 
 Name already in use → actionable error (name, session id / last used if known, suggest `close` or another name).
 

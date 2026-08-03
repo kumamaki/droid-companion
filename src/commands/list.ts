@@ -1,6 +1,6 @@
+import { effectiveStaleAfter, loadConfig } from "../lib/config";
 import { findRunningJobForName, reconcileJob } from "../lib/jobs";
 import {
-  DEFAULT_STALE_MS,
   buildRosterEntry,
   parseDurationMs,
   selectStaleEntries,
@@ -15,7 +15,8 @@ function output(obj: unknown): void {
 /**
  * list / list --stale / list --prune
  * Cheap health only: no model pong.
- * Stale = idle longer than --older-than (default 7d). Running jobs are never stale.
+ * Stale = idle longer than --older-than (config defaults.stale_after or 7d).
+ * Running jobs are never stale.
  */
 export async function cmdList(opts: {
   stale?: boolean;
@@ -29,9 +30,9 @@ export async function cmdList(opts: {
     );
   }
 
-  const olderThanMs = opts.olderThan
-    ? parseDurationMs(opts.olderThan)
-    : DEFAULT_STALE_MS;
+  const config = loadConfig();
+  const olderThan = effectiveStaleAfter(config, opts.olderThan);
+  const olderThanMs = parseDurationMs(olderThan);
   const nowMs = Date.now();
   const sessions = loadSessions();
 

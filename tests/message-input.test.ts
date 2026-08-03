@@ -21,6 +21,11 @@ describe("assertPositionalMessageSize", () => {
       assertPositionalMessageSize("x".repeat(MAX_POSITIONAL_MESSAGE_CHARS + 1)),
     ).toThrow(/--message-file/);
   });
+
+  test("respects custom max", () => {
+    expect(() => assertPositionalMessageSize("hello", 3)).toThrow(/max <3>/);
+    expect(() => assertPositionalMessageSize("hi", 3)).not.toThrow();
+  });
 });
 
 describe("readMessageInput", () => {

@@ -36,6 +36,11 @@ export interface SpawnOptions {
   role?: string;
   /** Applied before spawn; explicit flags still win when already set. */
   preset?: string;
+  /**
+   * Named config profile (`[profiles.<name>]` in config.toml).
+   * Not the tool-surface full|lite — that is `lite` / session `profile`.
+   */
+  configProfile?: string;
 }
 
 export interface SendOptions {

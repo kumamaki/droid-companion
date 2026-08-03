@@ -1,5 +1,6 @@
 import { mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { join } from "path";
+import { configPath, loadConfig } from "./config";
 import {
   PACKAGE_NAME,
   VERSION,
@@ -29,6 +30,13 @@ export type DoctorCheckResult = {
     stateDirWritable: boolean;
     stateDirDetail: string | null;
     droidCompanionHome: string | null;
+    configPath: string;
+    configPresent: boolean;
+    configOk: boolean;
+    configError: string | null;
+    configStaleAfter: string | null;
+    configStaleAfterMs: number | null;
+    configProfileNames: string[];
     authStatus: "credentialsPresent" | "credentialsMissing";
     authVerified: false;
     authSignals: string[];
@@ -96,7 +104,28 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
   const authStatus =
     auth.status === "present" ? "credentialsPresent" : "credentialsMissing";
 
-  const criticalOk = droid.ok && state.ok && contractPath !== null;
+  const cfgPath = configPath();
+  let configPresent = false;
+  let configOk = true;
+  let configError: string | null = null;
+  let configStaleAfter: string | null = null;
+  let configStaleAfterMs: number | null = null;
+  let configProfileNames: string[] = [];
+  try {
+    const cfg = loadConfig(cfgPath);
+    configPresent = cfg.exists;
+    configOk = true;
+    configStaleAfter = cfg.staleAfter;
+    configStaleAfterMs = cfg.staleAfterMs;
+    configProfileNames = Object.keys(cfg.profiles);
+  } catch (err) {
+    configPresent = true;
+    configOk = false;
+    configError = err instanceof Error ? err.message : String(err);
+  }
+
+  // Bad config is a critical fail (fail early); missing config is fine.
+  const criticalOk = droid.ok && state.ok && contractPath !== null && configOk;
 
   return {
     ok: criticalOk,
@@ -115,6 +144,13 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
       stateDirWritable: state.ok,
       stateDirDetail: state.detail ?? null,
       droidCompanionHome: process.env.DROID_COMPANION_HOME ?? null,
+      configPath: cfgPath,
+      configPresent,
+      configOk,
+      configError,
+      configStaleAfter,
+      configStaleAfterMs,
+      configProfileNames,
       authStatus,
       authVerified: false,
       authSignals: auth.signals,
@@ -125,6 +161,7 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
     },
     notes: [
       "ok:true does not mean auth is verified — see authStatus / authVerified.",
+      "Config: ~/.config/droid-companion/config.toml (optional). Override with DROID_COMPANION_CONFIG.",
       "Background: send --bg · status · result --wait · mutex · idempotency-key · --on-done.",
       "Companion never applies an internal kill timeout to droid exec.",
     ],

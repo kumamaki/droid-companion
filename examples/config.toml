@@ -1,0 +1,38 @@
+# Optional droid-companion config
+# Install: copy to ~/.config/droid-companion/config.toml
+# Override path: DROID_COMPANION_CONFIG=/path/to/config.toml
+#
+# Precedence: CLI flags > [profiles.NAME] > [defaults] > built-ins
+# Missing file is fine — built-in defaults apply.
+
+[defaults]
+# list --stale / --prune threshold when --older-than is omitted
+stale_after = "7d"
+
+# Optional sticky spawn defaults (omit any key to keep built-ins)
+# preset = "advisor"          # critic | auditor | fixer | advisor
+# format = "prose"            # prose | findings
+# profile = "full"            # tool surface: full | lite
+# cwd = "~/Work/current"
+# brief = "brief.md"
+
+[defaults.send]
+# Max chars for positional send messages; longer → --message-file
+max_positional_chars = 4000
+
+# Named spawn bundles: droid-companion spawn --name r1 --profile review
+[profiles.review]
+preset = "critic"
+format = "findings"
+profile = "lite"
+
+[profiles.fix]
+preset = "fixer"
+auto = "low"
+# cwd = "."
+
+# Freeform example (no built-in preset):
+# [profiles.api]
+# system_prompt = "You review public API design. Prefer stability and clarity."
+# format = "findings"
+# profile = "lite"

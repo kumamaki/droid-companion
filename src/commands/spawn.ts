@@ -1,4 +1,9 @@
 import { validateName } from "../lib/args";
+import {
+  getNamedProfile,
+  loadConfig,
+  mergeSpawnOptions,
+} from "../lib/config";
 import { droidExec } from "../lib/droid-exec";
 import { ensureStateDir, resolveContractPath } from "../lib/paths";
 import { applyPreset, parsePreset } from "../lib/presets";
@@ -23,17 +28,22 @@ function output(obj: unknown): void {
 export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
   ensureStateDir();
 
-  const presetName = raw.preset ? parsePreset(raw.preset) : undefined;
-  // Track which fields were explicitly set so preset fills only gaps.
-  // applyPreset already treats undefined as fillable.
-  const opts = presetName ? applyPreset(raw, presetName) : raw;
+  const config = loadConfig();
+  const named = raw.configProfile
+    ? getNamedProfile(config, raw.configProfile)
+    : undefined;
+  const merged = mergeSpawnOptions(raw, config, named);
+
+  const presetName = merged.preset ? parsePreset(merged.preset) : undefined;
+  // applyPreset fills only gaps; lite:false from config full is preserved.
+  const opts = presetName ? applyPreset(merged, presetName) : merged;
 
   const name = validateName(opts.name);
   assertNameAvailable(name);
 
   const cwd = resolveCwd(opts.cwd);
   const briefPath = opts.brief ? resolveBriefPath(opts.brief, cwd) : undefined;
-  const profile: Profile = opts.lite ? "lite" : "full";
+  const profile: Profile = opts.lite === true ? "lite" : "full";
   const format = opts.format ?? "prose";
   const role = opts.role ?? opts.systemPrompt;
   const auto = opts.auto ?? inferDefaultAuto(role, profile);
@@ -102,6 +112,7 @@ export async function cmdSpawn(raw: SpawnOptions): Promise<void> {
     format,
     profile,
     preset: presetName ?? null,
+    configProfile: raw.configProfile ?? null,
     contract: !opts.noContract,
     contractPath: opts.noContract ? null : resolveContractPath(),
     announce: `Companion ready: ${name} (${result.session_id}). Call with: droid-companion send ${name} "…"`,
