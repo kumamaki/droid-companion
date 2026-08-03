@@ -1,91 +1,157 @@
 # droid-companion
 
-Named, multi-turn **companion** sessions for [Factory Droid](https://factory.ai).
+Named multi-turn companion sessions for [Factory Droid](https://factory.ai).
 
-The main Droid (or you) keeps specialists on speed dial: spawn once by **name**, send many turns, close when done. **Agent-first:** JSON for control, files for long content.
+You (or the main Droid) spawn a specialist once by **name**, talk to it across many turns, and close it when the job is done. The companion keeps its own session context. You call it by name; nothing is pushed into your main chat.
 
 ```sh
 droid-companion spawn --name audit --persona critic
-droid-companion send audit --message-file examples/ask.md
+droid-companion send audit --message-file ask.md
 droid-companion list
 droid-companion close audit
 ```
 
-> **Status:** `0.1.2` — core + background jobs + `setup` wizard (`send --bg` · `status` · `result --wait` · mutex · idempotency).
+**Status:** `0.1.2` — core loop, background jobs, personas, optional config, `setup` wizard.
 
-## Interface (locked)
+## Why use this
+
+`droid exec` is one-shot. If you want a second opinion, a security pass, or a fixer that remembers the last three turns, you either re-explain everything each call or invent your own session bookkeeping.
+
+droid-companion does that bookkeeping:
+
+- **Names** — `audit`, `rust-reviewer`, `fixer`. No anonymous UUID-first UX.
+- **Multi-turn** — spawn once, `send` many times, same session.
+- **Personas** — sealed packages for common specialist shapes (see below).
+- **Agent-safe I/O** — JSON for status and jobs; files for long prompts and answers.
+- **Long work** — `send --bg` + `result --wait` so host shell timeouts do not re-fire the same turn.
+- **No kill timer** on the companion itself. One in-flight job per name. Optional idempotency keys.
+
+For a single throwaway call, stick with `droid exec`. Reach for companions when the specialist should remember prior turns.
+
+## Personas
+
+A **persona** is a sealed package: role text + tool profile + reply shape + optional autonomy. You pick it with `--persona`. You do not stack a second system prompt on top of it.
+
+| Persona | Tool profile | Format | Auto | Use when |
+|---------|--------------|--------|------|----------|
+| `critic` | lite | findings | — | Ruthless code review |
+| `auditor` | lite | findings | — | Auth, injection, secrets, privilege boundaries |
+| `fixer` | full | prose | `low` | Small focused implementations |
+| `advisor` | full | prose | — | Tradeoffs and recommendations |
+
+**Tool profile** is what the companion can do:
+
+- `lite` — analysis only; heavy tools (skills, nested agents) disabled; read-only by default
+- `full` — normal tool surface; can edit when autonomy allows
+
+**Format** is reply shape:
+
+- `prose` — normal writing
+- `findings` — flat lines: `severity` · `path:line` · claim
+
+Defaults come from the persona. Override with `--tool-profile`, `--lite`, or `--format` when you need a one-off change.
+
+**Custom voice** replaces the persona role entirely (no stacking):
+
+```sh
+droid-companion spawn --name api --role "You review public API design only." \
+  --tool-profile lite --format findings
+```
+
+Add your own packages in config:
+
+```toml
+# ~/.config/droid-companion/config.toml
+[personas.review]
+role = "You are a ruthless API reviewer."
+tool_profile = "lite"
+format = "findings"
+
+[personas.fix]
+extends = "fixer"
+# cwd = "."
+```
+
+```sh
+droid-companion spawn --name r1 --persona review
+droid-companion config show
+```
+
+## Interface
 
 | Plane | Form |
 |-------|------|
-| **Control** | JSON on stdout (verbs, job status, errors) |
+| **Control** | JSON on stdout (spawn/send/list/status/result, job ids, errors) |
 | **Content** | Files — `--message-file`, `--brief`, optional `--response-file` |
 
-**JSON for verbs/state. Files for paragraphs.**  
-Not the API: a shared freeform `chat.md` as the only bus.
-
-## Prerequisites
-
-| Need | Why |
-|------|-----|
-| **[Droid CLI](https://docs.factory.ai)** on `PATH` | Companions are `droid exec` sessions |
-| Droid login / credentials | Same auth as your host Droid |
-| **Bun** (from source) | Dev and compile |
+Short pings may be a positional argument (`send audit "looks ok?"`). Long asks go in a file. Do not use a shared freeform `chat.md` as the control bus.
 
 ## Install
 
-See **[docs/install.md](docs/install.md)**. Short version:
+Needs the **[Droid CLI](https://docs.factory.ai)** on `PATH` and the same login / `FACTORY_API_KEY` as your host Droid.
 
 ```bash
 # Homebrew (Homebrew 6+ needs tap trust)
 brew tap kumamaki/tap
 brew trust --formula kumamaki/tap/droid-companion
-# Bun on PATH at install time (https://bun.sh — not required as a brew dep)
+# Bun on PATH at install time (https://bun.sh)
 brew install droid-companion
-droid-companion setup          # doctor → offer skill install → first commands
+droid-companion setup
+```
 
-# From source
-git clone personal:kumamaki/droid-companion.git   # or git@github.com:kumamaki/droid-companion.git
+From source:
+
+```bash
+git clone https://github.com/kumamaki/droid-companion.git
 cd droid-companion
 bun src/companion.ts setup
 ```
 
-Binary name: **`droid-companion`**. Package / repo: **`droid-companion`**.
+Non-interactive:
 
 ```bash
-# Non-interactive (CI / agents)
 droid-companion setup --yes
-# or only the skill: droid-companion install-skill
+# skill only:
+droid-companion install-skill
 ```
 
-Examples: [`examples/brief.md`](examples/brief.md) · [`examples/ask.md`](examples/ask.md)
+Full install notes: [docs/install.md](docs/install.md).
 
-## Agent loop (v0.1)
+## Quick loop
 
-1. `droid-companion spawn --name <unique> …` — always name companions  
-2. **Announce** the name in the user transcript; keep a one-line roster  
-3. `droid-companion send <name> …` — prefer `--message-file` for long asks  
-4. Long work → **`send --bg`**, then `result --wait` or `status` / `result` (do **not** re-send after a timeout)  
-5. `droid-companion close <name>` when finished (**untrack**; droid may still keep session data)  
+```sh
+droid-companion spawn --name audit --persona auditor --cwd .
+droid-companion send audit --message-file examples/ask.md
 
-Hard rules:
+# long work (do not foreground past host tool timeouts)
+droid-companion send audit --bg --message-file deep.md --idempotency-key deep-1
+droid-companion result audit --wait
 
-- Companion **never** applies an internal kill timeout to `droid exec`  
-- One in-flight job per name; optional `--idempotency-key` for safe retries  
-- Notify = job files + optional local `--on-done` — **no chat push** into main Droid  
-- Never kill companion / `droid` PIDs to “unstick”  
+droid-companion list
+droid-companion close audit
+```
 
-Full playbook: **[docs/agent-guide.md](docs/agent-guide.md)** · skill: **[skill/SKILL.md](skill/SKILL.md)** · jobs: **[docs/background-jobs.md](docs/background-jobs.md)**
+Rules:
+
+1. Always `--name` on spawn.
+2. Prefer `--message-file` for multi-line content.
+3. If the turn might exceed the host shell timeout, use `send --bg`, then `status` / `result` / `result --wait`.
+4. After a wait abort, do not re-send the same ask. Poll, or reuse `--idempotency-key`.
+5. One in-flight job per name. Do not kill companion / `droid` PIDs to unstick a session.
+6. `close` untracks local state; Droid may still keep session data on disk.
 
 ## Docs
 
 | Doc | Contents |
 |-----|----------|
-| [overview](docs/overview.md) | Mental model + interface rule |
+| [overview](docs/overview.md) | Layers, config, autonomy defaults |
 | [install](docs/install.md) | Brew, binary, from source |
-| [agent-guide](docs/agent-guide.md) | Main-droid workflow + anti-timeout policy |
+| [agent-guide](docs/agent-guide.md) | How the main Droid should call this CLI |
 | [cli-reference](docs/cli-reference.md) | Commands, flags, JSON shapes |
-| [background-jobs](docs/background-jobs.md) | `--bg` / status / result / wait / notify |
-| [roadmap](docs/roadmap.md) | P0 vs later |
+| [background-jobs](docs/background-jobs.md) | `--bg`, mutex, idempotency, notify |
+| [roadmap](docs/roadmap.md) | Shipped vs later |
+| [skill/SKILL.md](skill/SKILL.md) | Skill installed into `~/.factory/skills` |
+| [examples/](examples/) | `ask.md`, `brief.md`, `config.toml` |
 
 ## License
 
