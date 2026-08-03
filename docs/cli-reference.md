@@ -143,7 +143,7 @@ Machine summary shape (`--json`):
     "targetDir": "/Users/you/.factory/skills/droid-companion",
     "detail": "…"
   },
-  "next": ["droid-companion spawn --name smoke --preset advisor", "…"]
+  "next": ["droid-companion spawn --name smoke --persona advisor", "…"]
 }
 ```
 

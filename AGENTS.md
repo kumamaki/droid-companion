@@ -43,7 +43,7 @@ Never commit session or job state. Prefer atomic writes + lock when implementing
 
 1. Read `docs/overview.md` + `docs/roadmap.md` + `docs/background-jobs.md` before changing product surface.
 2. Track durable work with `bd` only (see below).
-3. Contract is a **thin** specialist relay (`contractVersion: 2`) — not a full autonomy manifesto; role/presets carry work style.
+3. Contract is a **thin** specialist relay (`contractVersion: 2`) — not a full autonomy manifesto; **personas** (role + tool_profile + format + auto) carry work style.
 
 ## Dev commands
 

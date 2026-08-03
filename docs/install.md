@@ -105,7 +105,7 @@ If that directory already has a private `companion.ts`, install **refuses** unle
 ```sh
 droid-companion --version
 droid-companion setup --yes          # or: doctor + install-skill
-droid-companion spawn --name smoke --preset advisor
+droid-companion spawn --name smoke --persona advisor
 droid-companion send smoke "ping"
 droid-companion close smoke
 ```
