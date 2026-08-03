@@ -86,7 +86,7 @@ Legacy aliases still accepted for a transition window: `--preset` / `--profile` 
 
 ## Current repo phase
 
-**On main (ahead of last public story as `0.1.2` on package.json — bump when shipping):**
+**On main (ahead of last public story as `0.1.3` on package.json — bump when shipping):**
 
 - Core: spawn / send / list / close / doctor / setup / install-skill / config show
 - Jobs: send --bg · status · result --wait · mutex · idempotency · on-done

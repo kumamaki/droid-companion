@@ -11,7 +11,7 @@ droid-companion list
 droid-companion close audit
 ```
 
-**Status:** `0.1.2` — core loop, background jobs, personas, optional config, `setup` wizard.
+**Status:** `0.1.3` — core loop, background jobs, personas, optional config, `setup` wizard.
 
 ## Why use this
 

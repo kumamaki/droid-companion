@@ -117,7 +117,7 @@ Non-TTY without `--yes`: skill not installed (doctor + report only).
 Human mode example:
 
 ```text
-droid-companion setup 0.1.2
+droid-companion setup 0.1.3
 
 Environment
   ✓ droid      0.186.0
