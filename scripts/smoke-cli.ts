@@ -56,15 +56,68 @@ async function main(): Promise<void> {
     console.log(`ok: --version <${version.stdout.trim()}>`);
 
     const doctor = await run(["doctor"]);
-    const doctorJson = JSON.parse(doctor.stdout) as { ok: boolean; version: string };
+    const doctorJson = JSON.parse(doctor.stdout) as {
+      ok: boolean;
+      version: string;
+      flavor?: string;
+      binary?: string;
+    };
     assert(typeof doctorJson.ok === "boolean", "doctor.ok boolean");
     assert(doctorJson.version === version.stdout.trim(), "doctor version matches --version");
+    assert(doctorJson.flavor === "prod", `doctor.flavor expected prod got <${doctorJson.flavor}>`);
+    assert(
+      doctorJson.binary === "droid-companion",
+      `doctor.binary expected droid-companion got <${doctorJson.binary}>`,
+    );
     // doctor loads config → materializes default config.toml under smoke home
     assert(
       existsSync(join(HOME, "config.toml")),
       "doctor should create config.toml via loadConfig",
     );
-    console.log(`ok: doctor ok=<${doctorJson.ok}>`);
+    console.log(`ok: doctor ok=<${doctorJson.ok}> flavor=<${doctorJson.flavor}>`);
+
+    // Dev flavor via env (same entry as just run-dev / companion-dev.ts)
+    {
+      const proc = Bun.spawn(["bun", ENTRY, "doctor"], {
+        cwd: ROOT,
+        env: {
+          ...process.env,
+          DROID_COMPANION_HOME: join(HOME, "dev-home"),
+          DROID_COMPANION_CONFIG: join(HOME, "dev-config.toml"),
+          DROID_COMPANION_FLAVOR: "dev",
+        },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
+      const code = await proc.exited;
+      if (code !== 0) {
+        throw new Error(`dev doctor exit <${code}>\n${stdout}\n${stderr}`);
+      }
+      const devDoctor = JSON.parse(stdout) as {
+        flavor: string;
+        binary: string;
+        checks: { stateDir: string; configPath: string };
+      };
+      assert(devDoctor.flavor === "dev", "dev doctor.flavor");
+      assert(devDoctor.binary === "droid-companion-dev", "dev doctor.binary");
+      assert(
+        devDoctor.checks.stateDir.includes("dev-home"),
+        `dev stateDir <${devDoctor.checks.stateDir}>`,
+      );
+      assert(
+        devDoctor.checks.configPath.endsWith("dev-config.toml"),
+        `dev configPath <${devDoctor.checks.configPath}>`,
+      );
+      assert(
+        existsSync(join(HOME, "dev-config.toml")),
+        "dev doctor materializes its own config",
+      );
+      console.log("ok: doctor with DROID_COMPANION_FLAVOR=dev");
+    }
 
     // non-TTY defaults to machine JSON; --json makes it explicit
     const setup = await run(["setup", "--yes", "--skip-skill", "--json"]);

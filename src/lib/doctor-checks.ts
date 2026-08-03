@@ -4,12 +4,15 @@ import { configPath, loadConfig } from "./config";
 import {
   PACKAGE_NAME,
   VERSION,
+  appSlug,
+  cliBinaryName,
   contractCandidates,
   detectAuthPresence,
   droidBin,
   ensureStateDir,
   materializeEmbeddedContract,
   resolveContractPath,
+  resolveFlavor,
   stateDir,
 } from "./paths";
 
@@ -17,6 +20,8 @@ export type DoctorCheckResult = {
   ok: boolean;
   version: string;
   package: string;
+  flavor: "prod" | "dev";
+  binary: string;
   checks: {
     droidOnPath: boolean;
     droidBin: string;
@@ -126,11 +131,15 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
 
   // Bad config is a critical fail (fail early); missing config is fine.
   const criticalOk = droid.ok && state.ok && contractPath !== null && configOk;
+  const flavor = resolveFlavor();
+  const slug = appSlug(flavor);
 
   return {
     ok: criticalOk,
     version: VERSION,
     package: PACKAGE_NAME,
+    flavor,
+    binary: cliBinaryName(flavor),
     checks: {
       droidOnPath: droid.ok,
       droidBin: droidBin(),
@@ -161,7 +170,10 @@ export async function runDoctorChecks(): Promise<DoctorCheckResult> {
     },
     notes: [
       "ok:true does not mean auth is verified — see authStatus / authVerified.",
-      "Config: ~/.config/droid-companion/config.toml (created on first load if missing). Override with DROID_COMPANION_CONFIG.",
+      `Flavor: ${flavor} · binary: ${cliBinaryName(flavor)}.`,
+      `Config: ~/.config/${slug}/config.toml (created on first load if missing). Override with DROID_COMPANION_CONFIG.`,
+      `State: ~/.local/share/${slug}/ (override DROID_COMPANION_HOME).`,
+      "Dev isolation: droid-companion-dev or DROID_COMPANION_FLAVOR=dev.",
       "Background: send --bg · status · result --wait · mutex · idempotency-key · --on-done.",
       "Companion never applies an internal kill timeout to droid exec.",
     ],

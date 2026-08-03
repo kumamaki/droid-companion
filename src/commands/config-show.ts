@@ -1,4 +1,5 @@
 import { loadConfig } from "../lib/config";
+import { appSlug, cliBinaryName, resolveFlavor, stateDir } from "../lib/paths";
 import { listBuiltinPersonas } from "../lib/personas";
 
 function output(obj: unknown): void {
@@ -8,7 +9,12 @@ function output(obj: unknown): void {
 /** Print resolved config (JSON control plane). */
 export async function cmdConfigShow(): Promise<void> {
   const config = loadConfig();
+  const flavor = resolveFlavor();
   output({
+    flavor,
+    binary: cliBinaryName(flavor),
+    appSlug: appSlug(flavor),
+    stateDir: stateDir(),
     path: config.path,
     exists: config.exists,
     created: config.created,

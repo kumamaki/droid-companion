@@ -43,7 +43,8 @@ Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs 
 ## Config
 
 ```
-~/.config/droid-companion/config.toml
+~/.config/droid-companion/config.toml          # prod binary
+~/.config/droid-companion-dev/config.toml      # droid-companion-dev
 ```
 
 Override path: `DROID_COMPANION_CONFIG`.  
@@ -51,6 +52,8 @@ Override path: `DROID_COMPANION_CONFIG`.
 
 Sticky **`[defaults]`** + user **`[personas.NAME]`**.  
 Precedence: **CLI > persona package > `[defaults]` > built-ins**.
+
+**Dev flavor:** `droid-companion-dev` (or `DROID_COMPANION_FLAVOR=dev`) uses isolated config + state so dogfood never clobbers prod. See [install.md](install.md#dev-flavor).
 
 See [examples/config.toml](../examples/config.toml) and [cli-reference](cli-reference.md#config).
 
@@ -78,7 +81,8 @@ Details: [background-jobs.md](background-jobs.md).
 Local runtime only (never git):
 
 ```
-~/.local/share/droid-companion/   # or $DROID_COMPANION_HOME
+~/.local/share/droid-companion/       # prod (or $DROID_COMPANION_HOME)
+~/.local/share/droid-companion-dev/   # droid-companion-dev
   sessions.json
   jobs/
 ```

@@ -22,10 +22,29 @@ Machine/agents: `setup --json` (or non-TTY). Flags: `--yes`, `--skip-skill`, `--
 | Var | Purpose |
 |-----|---------|
 | `DROID_BIN` | Path to `droid` if not on PATH |
-| `DROID_COMPANION_HOME` | State dir (default `~/.local/share/droid-companion`) |
-| `DROID_COMPANION_CONFIG` | Config TOML path (default `~/.config/droid-companion/config.toml`; created on first load if missing) |
+| `DROID_COMPANION_HOME` | State dir (default `~/.local/share/droid-companion` · dev: `…/droid-companion-dev`) |
+| `DROID_COMPANION_CONFIG` | Config TOML path (default `~/.config/droid-companion/config.toml` · dev: `…/droid-companion-dev/…`; created on first load if missing) |
+| `DROID_COMPANION_FLAVOR` | `dev` \| `prod` — force isolated vs shared paths (wins over binary name) |
 | `DROID_COMPANION_CONTRACT` | Override path to `contract.md` |
 | `FACTORY_API_KEY` | Optional; same as host Droid |
+
+### Dev flavor
+
+Use a second binary so daily dogfood never touches prod sessions/config:
+
+```sh
+just run-dev doctor          # from source
+bun src/companion-dev.ts …
+# or after build:
+./dist/droid-companion-dev doctor
+```
+
+| | prod (`droid-companion`) | dev (`droid-companion-dev`) |
+|--|--------------------------|------------------------------|
+| Config | `~/.config/droid-companion/config.toml` | `~/.config/droid-companion-dev/config.toml` |
+| State | `~/.local/share/droid-companion/` | `~/.local/share/droid-companion-dev/` |
+
+Detection: basename `droid-companion-dev` **or** `DROID_COMPANION_FLAVOR=dev`. Explicit `DROID_COMPANION_HOME` / `DROID_COMPANION_CONFIG` still win for absolute overrides.
 
 ### Contract resolution
 
@@ -70,6 +89,7 @@ Build locally:
 ```bash
 ./scripts/build-binary.sh
 # → dist/droid-companion
+# → dist/droid-companion-dev   (isolated config + state)
 ```
 
 ## From source (works today)
@@ -77,14 +97,18 @@ Build locally:
 ```bash
 git clone git@github.com:kumamaki/droid-companion.git
 cd droid-companion
-bun src/companion.ts --help
+just run -- --help
+just run-dev doctor          # isolated ~/.config + ~/.local/share *-dev
+# or:
 bun src/companion.ts setup
+bun src/companion-dev.ts doctor
 ```
 
-Optional alias while developing:
+Optional aliases while developing:
 
 ```bash
 alias companion='bun /path/to/droid-companion/src/companion.ts'
+alias companion-dev='bun /path/to/droid-companion/src/companion-dev.ts'
 ```
 
 ## Install the agent skill

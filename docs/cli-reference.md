@@ -32,7 +32,8 @@ Recipes (`discuss` / `jury` / `vision`) are **not** v0.1 — see [roadmap](roadm
 ## Config
 
 TOML at `~/.config/droid-companion/config.toml`  
-(`DROID_COMPANION_CONFIG` overrides the path).
+(dev flavor: `~/.config/droid-companion-dev/config.toml`).  
+`DROID_COMPANION_CONFIG` overrides the path; `DROID_COMPANION_FLAVOR=dev` forces the dev slug.
 
 First command that loads config **creates** the file with starter defaults if it is missing. Existing files are never overwritten.
 

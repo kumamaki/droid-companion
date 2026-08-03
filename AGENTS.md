@@ -32,7 +32,8 @@ Requires the **`droid` CLI** on `PATH` (Factory). Companions are `droid exec` se
 
 ## State (local, not in git)
 
-Default: `~/.local/share/droid-companion/` (or `DROID_COMPANION_HOME`)
+Default: `~/.local/share/droid-companion/` (or `DROID_COMPANION_HOME`)  
+Dev binary `droid-companion-dev` / `DROID_COMPANION_FLAVOR=dev`: `~/.local/share/droid-companion-dev/` + `~/.config/droid-companion-dev/config.toml`.
 
 - sessions registry  
 - background job metadata / result files  
@@ -53,9 +54,10 @@ Prefer **`just`** (`justfile`). `bun run …` still works.
 just                 # list recipes
 just check           # typecheck · lint · unit · cli smoke
 just run -- --help
+just run-dev doctor  # isolated config + state (droid-companion-dev)
 just doctor
 just setup --yes --skip-skill
-just build
+just build           # dist/droid-companion + dist/droid-companion-dev
 just release         # prep only; does not push
 # NEVER: just ship   — user-only (pushes main+tag + homebrew-tap)
 ```

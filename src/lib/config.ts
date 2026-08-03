@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
+import { appSlug } from "./flavor";
 import {
   getBuiltinPersona,
   mergePersonaPackage,
@@ -26,9 +27,12 @@ export const BUILTIN_MAX_POSITIONAL_CHARS = MAX_POSITIONAL_MESSAGE_CHARS;
  * Written once when the config path does not exist.
  * Never overwrites an existing file.
  */
-export const DEFAULT_CONFIG_TOML = `# droid-companion config
-# Path: ~/.config/droid-companion/config.toml
+/** Starter TOML body (path comment filled by defaultConfigToml). */
+function defaultConfigTomlBody(cliName: string, configHint: string): string {
+  return `# ${cliName} config
+# Path: ${configHint}
 # Override: DROID_COMPANION_CONFIG=/path/to/config.toml
+# Dev flavor (isolated paths): droid-companion-dev · DROID_COMPANION_FLAVOR=dev
 #
 # Precedence: CLI flags > persona package > [defaults] > built-ins
 # This file is created on first use if missing. Edit freely.
@@ -55,7 +59,7 @@ stale_after = "7d"
 max_positional_chars = 4000
 
 # Built-in personas (no config needed): critic | auditor | fixer | advisor
-#   droid-companion spawn --name r1 --persona critic
+#   ${cliName} spawn --name r1 --persona critic
 #
 # User personas:
 # [personas.review]
@@ -71,6 +75,22 @@ max_positional_chars = 4000
 # extends = "fixer"
 # cwd = "."
 `;
+}
+
+/**
+ * Written once when the config path does not exist.
+ * Never overwrites an existing file.
+ */
+export function defaultConfigToml(): string {
+  const slug = appSlug();
+  return defaultConfigTomlBody(slug, `~/.config/${slug}/config.toml`);
+}
+
+/** @deprecated Prefer defaultConfigToml() — fixed for tests that import the constant. */
+export const DEFAULT_CONFIG_TOML = defaultConfigTomlBody(
+  "droid-companion",
+  "~/.config/droid-companion/config.toml",
+);
 
 /** Sticky defaults that are not a full persona. */
 export type ConfigDefaults = {
@@ -109,7 +129,7 @@ function isPlainObject(value: unknown): value is RawTable {
 export function configPath(): string {
   const override = process.env.DROID_COMPANION_CONFIG?.trim();
   if (override) return override;
-  return join(homedir(), ".config", "droid-companion", "config.toml");
+  return join(homedir(), ".config", appSlug(), "config.toml");
 }
 
 function optionalString(value: unknown, label: string): string | undefined {
@@ -293,7 +313,7 @@ export function materializeDefaultConfig(path: string): boolean {
   try {
     mkdirSync(dirname(path), { recursive: true });
     // wx: fail if a race created the file between exists check and write
-    writeFileSync(path, DEFAULT_CONFIG_TOML, { flag: "wx" });
+    writeFileSync(path, defaultConfigToml(), { flag: "wx" });
     return true;
   } catch (err) {
     // EEXIST from race → treat as already present

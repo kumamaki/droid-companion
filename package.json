@@ -7,10 +7,12 @@
   "author": "kumamaki <kumamaki@proton.me>",
   "license": "MIT",
   "bin": {
-    "droid-companion": "./src/companion.ts"
+    "droid-companion": "./src/companion.ts",
+    "droid-companion-dev": "./src/companion-dev.ts"
   },
   "scripts": {
     "droid-companion": "bun src/companion.ts",
+    "droid-companion-dev": "bun src/companion-dev.ts",
     "doctor": "bun src/companion.ts doctor",
     "setup": "bun src/companion.ts setup",
     "build": "bash scripts/build-binary.sh",

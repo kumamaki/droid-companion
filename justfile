@@ -43,13 +43,21 @@ build-multi:
 clean:
     bun run clean
 
-# Run CLI from source.
+# Run CLI from source (prod flavor / shared paths).
 run *args:
     bun src/companion.ts {{ args }}
+
+# Run CLI from source as droid-companion-dev (isolated config + state).
+run-dev *args:
+    bun src/companion-dev.ts {{ args }}
 
 # Environment doctor (JSON).
 doctor:
     bun src/companion.ts doctor
+
+# Doctor for the dev flavor (isolated paths).
+doctor-dev:
+    bun src/companion-dev.ts doctor
 
 # First-run wizard.
 setup *args:

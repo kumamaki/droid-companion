@@ -3,11 +3,15 @@ import { dirname, join } from "path";
 import { homedir } from "os";
 import { fileURLToPath } from "url";
 import { EMBEDDED_CONTRACT } from "./contract-embed";
+import { appSlug } from "./flavor";
 import packageJson from "../../package.json";
 
 /** Single source of truth: package.json version. */
 export const VERSION = packageJson.version;
 export const PACKAGE_NAME = packageJson.name;
+
+export type { Flavor } from "./flavor";
+export { appSlug, cliBinaryName, resolveFlavor } from "./flavor";
 
 /**
  * Repo root when running from source (`src/lib` → `../..`).
@@ -33,7 +37,7 @@ export const REPO_ROOT = resolveRepoRoot();
 export function stateDir(): string {
   const override = process.env.DROID_COMPANION_HOME?.trim();
   if (override) return override;
-  return join(homedir(), ".local", "share", "droid-companion");
+  return join(homedir(), ".local", "share", appSlug());
 }
 
 export function sessionsPath(): string {
@@ -62,7 +66,11 @@ export function droidBin(): string {
 
 /** Candidate paths for contract.md (first existing wins). */
 export function contractCandidates(): string[] {
-  const homeShare = join(homedir(), ".local", "share", "droid-companion");
+  const slug = appSlug();
+  const homeShare = join(homedir(), ".local", "share", slug);
+  // Prod share is always a fallback so a brew install still finds the contract
+  // when running the dev binary without a materialize yet.
+  const prodShare = join(homedir(), ".local", "share", "droid-companion");
   const execDir = dirname(process.execPath);
   return [
     process.env.DROID_COMPANION_CONTRACT?.trim(),
@@ -71,7 +79,12 @@ export function contractCandidates(): string[] {
     join(stateDir(), "contract", "contract.md"),
     join(homeShare, "contract.md"),
     join(homeShare, "contract", "contract.md"),
+    ...(slug !== "droid-companion"
+      ? [join(prodShare, "contract.md"), join(prodShare, "contract", "contract.md")]
+      : []),
     // brew-style: share next to binary prefix
+    join(execDir, "..", "share", slug, "contract.md"),
+    join(execDir, "share", slug, "contract.md"),
     join(execDir, "..", "share", "droid-companion", "contract.md"),
     join(execDir, "share", "droid-companion", "contract.md"),
   ].filter((p): p is string => Boolean(p));

@@ -10,7 +10,13 @@
 import { parseArgs, parseFormat, positionalNonFlags, validateName } from "./lib/args";
 import { loadConfig } from "./lib/config";
 import { DroidExecError } from "./lib/droid-exec";
-import { PACKAGE_NAME, VERSION } from "./lib/paths";
+import {
+  appSlug,
+  cliBinaryName,
+  resolveFlavor,
+  PACKAGE_NAME,
+  VERSION,
+} from "./lib/paths";
 import { BUILTIN_PERSONA_NAMES, personaSummary } from "./lib/personas";
 import { readMessageInput } from "./lib/prompts";
 import type { ToolProfile } from "./lib/types";
@@ -65,15 +71,18 @@ function resolvePersonaCliFlag(opts: Record<string, string | string[] | boolean>
 }
 
 function printHelp(): void {
+  const bin = cliBinaryName();
+  const flavor = resolveFlavor();
+  const slug = appSlug(flavor);
   console.log(`${PACKAGE_NAME} ${VERSION}
 
 Named multi-turn companion sessions for Factory Droid.
-Binary name: droid-companion
+Binary: ${bin}${flavor === "dev" ? "  (dev flavor)" : ""}
 
 Usage:
-  droid-companion <command> [options]
-  droid-companion --help
-  droid-companion --version
+  ${bin} <command> [options]
+  ${bin} --help
+  ${bin} --version
 
 Commands:
   setup                  First-run wizard (doctor → skill → cheat sheet)
@@ -98,7 +107,9 @@ Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
   Short pings may be positional; long content must use --message-file.
   No internal kill timeout. Long work: send --bg → status / result --wait.
-  Config: ~/.config/droid-companion/config.toml (created on first load if missing)
+  Config: ~/.config/${slug}/config.toml (created on first load if missing)
+  State:  ~/.local/share/${slug}/
+  Dev:    droid-companion-dev · DROID_COMPANION_FLAVOR=dev (isolated paths)
 
 spawn options:
   --name NAME (required)
