@@ -19,6 +19,8 @@ There is no push channel into the main chat. The main agent (or a human) calls t
 
 Short replies may sit in the JSON `response` field. Long prose should prefer a file path in the envelope (`responseFile` / `--response-file`).
 
+Short **asks** may be a positional `send` argument (≤ 4000 chars). Paragraphs still go through `--message-file`.
+
 ## Layers
 
 | Layer | Meaning |

@@ -1,5 +1,12 @@
 import { findRunningJobForName, reconcileJob } from "../lib/jobs";
-import { loadSessions } from "../lib/state";
+import {
+  DEFAULT_STALE_MS,
+  buildRosterEntry,
+  parseDurationMs,
+  selectStaleEntries,
+  type RosterEntry,
+} from "../lib/roster";
+import { loadSessions, removeSessions } from "../lib/state";
 
 function output(obj: unknown): void {
   console.log(JSON.stringify(obj, null, 2));
@@ -7,13 +14,14 @@ function output(obj: unknown): void {
 
 /**
  * list / list --stale / list --prune
- * Cheap health only: no model pong (41g.10).
- * job: idle|running from job registry + pid.
+ * Cheap health only: no model pong.
+ * Stale = idle longer than --older-than (default 7d). Running jobs are never stale.
  */
 export async function cmdList(opts: {
   stale?: boolean;
   prune?: boolean;
   deep?: boolean;
+  olderThan?: string;
 }): Promise<void> {
   if (opts.deep) {
     throw new Error(
@@ -21,48 +29,63 @@ export async function cmdList(opts: {
     );
   }
 
+  const olderThanMs = opts.olderThan
+    ? parseDurationMs(opts.olderThan)
+    : DEFAULT_STALE_MS;
+  const nowMs = Date.now();
   const sessions = loadSessions();
-  const roster = sessions.map((s) => {
-    let jobState: "idle" | "running" = "idle";
-    const running = findRunningJobForName(s.name);
-    if (running) {
-      const j = reconcileJob(running);
-      if (j.status === "running") jobState = "running";
-    }
-    return {
-      name: s.name,
-      role: s.role ?? null,
-      cwd: s.cwd ?? null,
-      auto: s.auto ?? null,
-      profile: s.profile ?? null,
-      format: s.format ?? null,
-      job: jobState,
-      lastUsedAt: s.lastUsedAt ?? s.createdAt,
-      lastDurationMs: s.lastDurationMs ?? null,
-      lastResponsePreview: s.lastResponse
-        ? s.lastResponse.slice(0, 120)
-        : null,
-      sessionId: s.sessionId,
-    };
+
+  const roster: RosterEntry[] = sessions.map((s) => {
+    const found = findRunningJobForName(s.name);
+    const reconciled = found ? reconcileJob(found) : undefined;
+    const running = reconciled?.status === "running" ? reconciled : undefined;
+    return buildRosterEntry(s, running, nowMs, olderThanMs);
   });
 
-  if (!opts.stale && !opts.prune) {
+  const wantStaleView = opts.stale === true || opts.prune === true;
+  if (!wantStaleView) {
     output({
       sessions,
       count: sessions.length,
       roster,
+      olderThanMs,
     });
     return;
   }
 
+  const stale = selectStaleEntries(roster);
+  let pruned: string[] = [];
+  if (opts.prune && stale.length > 0) {
+    const removed = removeSessions(stale.map((entry) => entry.sessionId));
+    pruned = removed.map((s) => s.name);
+  }
+
+  const remainingSessions = opts.prune ? loadSessions() : sessions;
+  const remainingRoster = opts.prune
+    ? remainingSessions.map((s) => {
+        const found = findRunningJobForName(s.name);
+        const reconciled = found ? reconcileJob(found) : undefined;
+        const running = reconciled?.status === "running" ? reconciled : undefined;
+        return buildRosterEntry(s, running, nowMs, olderThanMs);
+      })
+    : roster;
+
   output({
-    sessions,
-    count: sessions.length,
-    stale: [],
-    staleCount: 0,
-    pruned: false,
-    roster,
+    sessions: remainingSessions,
+    count: remainingSessions.length,
+    roster: remainingRoster,
+    stale: stale.map((entry) => ({
+      name: entry.name,
+      sessionId: entry.sessionId,
+      lastUsedAt: entry.lastUsedAt,
+      idleForMs: entry.idleForMs,
+    })),
+    staleCount: stale.length,
+    pruned: opts.prune === true,
+    prunedNames: pruned,
+    prunedCount: pruned.length,
+    olderThanMs,
     note:
-      "Cheap health only: no model pong. stale[] empty for droid session liveness; job busy shown via roster.job.",
+      "Cheap health only: no model pong. Stale = idle longer than olderThanMs with no running job. prune untracks only (does not kill droid sessions or running jobs).",
   });
 }

@@ -13,6 +13,8 @@ export interface SessionRecord {
   profile?: Profile;
   role?: string;
   lastResponse?: string;
+  /** Path from last --response-file send, if any. */
+  lastResponseFile?: string;
   lastDurationMs?: number;
   lastUsedAt?: string;
   createdAt: string;

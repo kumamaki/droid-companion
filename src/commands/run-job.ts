@@ -73,6 +73,7 @@ export async function cmdRunJob(jobId: string): Promise<void> {
     touchSession(job.sessionId, {
       lastResponse: response,
       lastDurationMs: result.duration_ms,
+      lastResponseFile: responseFile ?? undefined,
     });
 
     const done: JobRecord = {

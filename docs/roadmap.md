@@ -32,7 +32,7 @@ Audience for v0.1: **agent-first** (JSON control plane, ship skill). Packaging: 
 | Item | Notes |
 |------|--------|
 | Job lifecycle unit tests | classify · mutex · idempotency pure helpers |
-| Cheap `list --stale` / `--prune` | No model pong by default |
+| Cheap `list --stale` / `--prune` | Age-based stale + untrack prune; roster jobId/ages; no model pong |
 | Contract ship/embed | Install layout without git checkout |
 | `install-skill` + `setup` | Distribution friction |
 | Atomic state + lock | Concurrent spawn/send safety |

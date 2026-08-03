@@ -137,3 +137,19 @@ export function removeSession(sessionId: string): SessionRecord | undefined {
     return found;
   });
 }
+
+/** Atomically untrack many sessions. Returns the removed records. */
+export function removeSessions(sessionIds: string[]): SessionRecord[] {
+  if (sessionIds.length === 0) return [];
+  const idSet = new Set(sessionIds);
+  return withStateLock(() => {
+    const sessions = readSessionsFile();
+    const removed = sessions.filter((s) => idSet.has(s.sessionId));
+    if (removed.length === 0) return [];
+    writeJsonAtomic(
+      sessionsPath(),
+      sessions.filter((s) => !idSet.has(s.sessionId)),
+    );
+    return removed;
+  });
+}

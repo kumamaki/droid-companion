@@ -207,11 +207,18 @@ Example result shape:
 droid-companion send <name|sessionId> [message] [options]
 ```
 
-Prefer **name**. Prefer **`--message-file`** for anything longer than a short line.
+Prefer **name**.
+
+| Content size | How |
+|--------------|-----|
+| Short ping (≤ 4000 chars) | Positional: `send audit "quick: does this look wrong?"` |
+| Paragraphs / multi-line | **`--message-file PATH`** or `--message-file -` (stdin) |
+
+Huge positional argv is rejected with an error that points at `--message-file`.
 
 | Flag | Notes |
 |------|--------|
-| `--message-file PATH\|-` | File or stdin; prefer over shell quoting |
+| `--message-file PATH\|-` | File or stdin; required for long content |
 | `--images PATHS` | Comma-separated paths (companion Read tool) |
 | `--model ID` | Override this turn |
 | `--auto LEVEL` | Override (updates tracked default) |
@@ -263,13 +270,22 @@ Background accept:
 ## `list` (spec)
 
 ```sh
-droid-companion list [--stale] [--prune] [--deep]
+droid-companion list [--stale] [--prune] [--older-than DUR] [--deep]
 ```
+
+| Flag | Notes |
+|------|--------|
+| (default) | Full roster + sessions; cheap job busy/idle from job files + pid |
+| `--stale` | Also report companions idle longer than threshold |
+| `--prune` | Untrack stale companions (never kills a running job or droid session) |
+| `--older-than DUR` | Threshold for stale/prune (default `7d`; also `24h`, `30m`, `90s`, raw ms) |
+| `--deep` | **Not implemented** — refused (no model pong) |
 
 ```json
 {
   "sessions": [ /* SessionRecord[] */ ],
   "count": 1,
+  "olderThanMs": 604800000,
   "roster": [
     {
       "name": "audit",
@@ -279,17 +295,36 @@ droid-companion list [--stale] [--prune] [--deep]
       "profile": "lite",
       "format": "findings",
       "job": "idle",
+      "jobId": null,
       "lastUsedAt": "…",
+      "lastDurationMs": 1234,
+      "lastResponsePreview": "…",
+      "lastResponseFile": null,
+      "idleForMs": 60000,
+      "ageMs": 3600000,
+      "stale": false,
       "sessionId": "…"
     }
   ]
 }
 ```
 
-- Default / `--stale` / `--prune`: **cheap** health only (pids, files). No model “pong” turn.
-- `--deep`: optional paid probe; documented as side-effecting (planned).
+With `--stale` / `--prune`:
 
-With `--stale` / `--prune`, also `stale`, `staleCount`, `pruned`.
+```json
+{
+  "stale": [{ "name": "old", "sessionId": "…", "lastUsedAt": "…", "idleForMs": 900000000 }],
+  "staleCount": 1,
+  "pruned": true,
+  "prunedNames": ["old"],
+  "prunedCount": 1,
+  "note": "Cheap health only: …"
+}
+```
+
+- **Stale** = `idleForMs >= olderThanMs` and **no** running job for that name.
+- Running jobs are never stale and never pruned.
+- Health is **cheap** only (pids, files, ages). No model “pong” turn.
 
 ---
 

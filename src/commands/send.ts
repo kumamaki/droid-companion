@@ -189,6 +189,7 @@ export async function cmdSend(
   touchSession(sessionId, {
     lastResponse: response,
     lastDurationMs: result.duration_ms,
+    lastResponseFile: responseFile ?? undefined,
   });
 
   output({

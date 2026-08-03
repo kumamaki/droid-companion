@@ -78,9 +78,14 @@ Keep a one-line **roster** while live:
 
 ### send
 
-Accepts **name** (preferred) or sessionId. Prefer `--message-file` for multi-line asks.
+Accepts **name** (preferred) or sessionId.
+
+- **Short ping:** positional message (max 4000 chars)  
+- **Paragraphs / multi-line:** `--message-file PATH` or `--message-file -` (stdin)  
+- Huge positional argv is **rejected** — put it in a file.
 
 ```sh
+droid-companion send audit "quick: does this API look wrong?"
 droid-companion send audit --message-file ask.md
 droid-companion send audit --message-file - <<'EOF'
 1) …
@@ -125,13 +130,19 @@ Optional:
 ```sh
 droid-companion list
 droid-companion list --stale
+droid-companion list --stale --older-than 24h
 droid-companion list --prune
+droid-companion list --prune --older-than 7d
 droid-companion close audit
 ```
 
-`close` = **untrack** from companion state (not a full guarantee that droid wiped disk session data).
+`list` roster includes `job` / `jobId` / `idleForMs` / `ageMs` / `lastResponsePreview` / `lastResponseFile` / `stale`.
 
-Default health checks are **cheap** (no model pong).
+- **Stale** = idle longer than `--older-than` (default `7d`) with **no** running job.
+- **`--prune`** untracks stale names only (does not kill running jobs or droid sessions).
+- Health is **cheap** (ages + job pids). No model pong. `--deep` is refused.
+
+`close` = **untrack** from companion state (not a full guarantee that droid wiped disk session data).
 
 ### setup / doctor / install-skill
 
@@ -164,7 +175,7 @@ User phrases: “ask audit about X”, “second opinion”, “keep that review
 1. Named companions only — no UUID-first UX.
 2. After spawn: announce + roster in the user transcript.
 3. Multi-turn by default; close only when done.
-4. Batch questions; `--message-file` for long content.
+4. Batch questions; short positional pings ok; `--message-file` for long content.
 5. `--lite` + `--format findings` for pure second opinions.
 6. Full profile + `--auto low` when the companion must edit.
 7. Relay by name; no raw JSON dumps unless asked.

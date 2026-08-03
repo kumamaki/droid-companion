@@ -63,6 +63,7 @@ setup options:
 
 Interface:
   JSON for verbs/state. Files for paragraphs (--message-file, --brief).
+  Short pings may be positional; long content must use --message-file.
   No internal kill timeout. Long work: send --bg → status / result --wait.
 
 spawn options:
@@ -75,10 +76,17 @@ presets:
 ${presetSummary()}
 
 send options:
-  --message-file PATH|-  --images PATHS  --model ID  --auto LEVEL
+  send <name> "short message"   # short positional ok (max 4000 chars)
+  --message-file PATH|-         # required for long / multi-line content
+  --images PATHS  --model ID  --auto LEVEL
   --cwd PATH  --brief PATH  --format prose|findings
   --bg  --out PATH  --response-file PATH  --idempotency-key KEY
   --on-done CMD  --force
+
+list options:
+  --stale                 Show companions idle longer than --older-than
+  --prune                 Untrack stale companions (never kills running jobs)
+  --older-than DUR        Stale threshold (default 7d; e.g. 24h, 30m, ms)
 
 result options:
   --wait  --poll-ms N
@@ -204,6 +212,7 @@ async function main(): Promise<void> {
           stale: opts.stale === true || opts.prune === true,
           prune: opts.prune === true,
           deep: opts.deep === true,
+          olderThan: opts["older-than"] as string | undefined,
         });
         break;
       }

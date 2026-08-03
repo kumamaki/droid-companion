@@ -86,9 +86,71 @@ async function main(): Promise<void> {
     console.log(`ok: install-skill → <${skillTarget}>`);
 
     const list = await run(["list"]);
-    const listJson = JSON.parse(list.stdout) as { roster?: unknown; sessions?: unknown };
+    const listJson = JSON.parse(list.stdout) as {
+      roster?: unknown[];
+      sessions?: unknown[];
+      olderThanMs?: number;
+    };
     assert(listJson !== null && typeof listJson === "object", "list JSON object");
+    assert(typeof listJson.olderThanMs === "number", "list.olderThanMs");
     console.log("ok: list");
+
+    // Seed one stale + one fresh session for list --stale / --prune
+    const now = Date.now();
+    writeFileSync(
+      join(HOME, "sessions.json"),
+      JSON.stringify(
+        [
+          {
+            sessionId: "sess-stale",
+            name: "stale-one",
+            createdAt: new Date(now - 20 * 86400000).toISOString(),
+            lastUsedAt: new Date(now - 14 * 86400000).toISOString(),
+            role: "old critic",
+            lastResponse: "dusty answer",
+          },
+          {
+            sessionId: "sess-fresh",
+            name: "fresh-one",
+            createdAt: new Date(now - 3600000).toISOString(),
+            lastUsedAt: new Date(now - 60000).toISOString(),
+            role: "new advisor",
+          },
+        ],
+        null,
+        2,
+      ) + "\n",
+    );
+
+    const staleList = await run(["list", "--stale"]);
+    const staleJson = JSON.parse(staleList.stdout) as {
+      staleCount: number;
+      stale: Array<{ name: string }>;
+      roster: Array<{ name: string; jobId: string | null; idleForMs: number; stale: boolean }>;
+      pruned: boolean;
+    };
+    assert(staleJson.staleCount === 1, `staleCount expected 1 got <${staleJson.staleCount}>`);
+    assert(staleJson.stale[0]?.name === "stale-one", "stale name");
+    assert(staleJson.pruned === false, "stale view does not prune");
+    const staleRow = staleJson.roster.find((r) => r.name === "stale-one");
+    assert(staleRow?.stale === true, "roster marks stale");
+    assert(typeof staleRow?.idleForMs === "number", "roster.idleForMs");
+    assert(staleRow?.jobId === null, "idle jobId null");
+    console.log("ok: list --stale");
+
+    const pruned = await run(["list", "--prune", "--older-than", "7d"]);
+    const pruneJson = JSON.parse(pruned.stdout) as {
+      pruned: boolean;
+      prunedCount: number;
+      prunedNames: string[];
+      count: number;
+      staleCount: number;
+    };
+    assert(pruneJson.pruned === true, "pruned true");
+    assert(pruneJson.prunedCount === 1, "prunedCount 1");
+    assert(pruneJson.prunedNames.includes("stale-one"), "prunedNames");
+    assert(pruneJson.count === 1, "one session remains");
+    console.log("ok: list --prune");
 
     // Unknown command → non-zero + JSON error
     const bad = await run(["not-a-command"], { expectCode: 1 });

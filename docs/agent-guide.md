@@ -77,11 +77,11 @@ droid-companion send audit --bg --message-file deep-ask.md \
 1. **Always `--name` on spawn.** No anonymous UUID-first UX.
 2. After spawn: **announce + roster** in the user transcript.
 3. Multi-turn by default; **close only when done** (`close` = untrack; see cli-reference).
-4. Prefer **`--message-file`** (or stdin) over giant shell-quoted strings.
+4. Short pings may be positional (`send audit "quick?"`). Prefer **`--message-file`** (or stdin) for multi-line / long content; huge positional argv is rejected.
 5. **`--lite` + `--format findings`** for pure second opinions on small diffs.
 6. Full profile + **`--auto low`** (or higher) when the companion must edit.
 7. Relay by **name**; do not dump raw JSON to the user unless asked.
-8. **`list --prune`** only with cheap health by default (no model pong).
+8. **`list --stale` / `list --prune`** use cheap age + job busy only (default older-than `7d`; no model pong). Prune untracks; it does not kill running jobs.
 
 ### Timeout / hang / notify policy
 
