@@ -12,13 +12,13 @@ droid-companion doctor   # checks only (JSON)
 # or: bun src/companion.ts setup
 ```
 
-**Agent install:** paste this to a coding agent:
+**Agent install:** paste this to a coding agent (interactive intake, then install):
 
 ```
-Install and set up droid-companion for me. Follow https://raw.githubusercontent.com/kumamaki/droid-companion/main/docs/agent-setup.md
+Install and set up droid-companion for me. Follow https://raw.githubusercontent.com/kumamaki/droid-companion/main/docs/agent-setup.md — ask me the intake questions first (what I'll use it for, who drives the CLI, long work, install path), then install and leave me a recipe for my answers.
 ```
 
-Full checklist: [agent-setup.md](agent-setup.md).
+Full guide: [agent-setup.md](agent-setup.md).
 
 **`setup`** (TTY): friendly human walkthrough on stdout — doctor, optional skill install, next commands. No JSON wall.  
 Machine/agents: `setup --json` (or non-TTY). Flags: `--yes`, `--skip-skill`, `--target DIR`, `--text`.

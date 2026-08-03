@@ -16,10 +16,10 @@ droid-companion close audit
 ## Paste to your agent
 
 ```
-Install and set up droid-companion for me. Follow https://raw.githubusercontent.com/kumamaki/droid-companion/main/docs/agent-setup.md
+Install and set up droid-companion for me. Follow https://raw.githubusercontent.com/kumamaki/droid-companion/main/docs/agent-setup.md — ask me the intake questions first (what I'll use it for, who drives the CLI, long work, install path), then install and leave me a recipe for my answers.
 ```
 
-That file is the install checklist (brew / source, `setup --yes`, skill, doctor). How to *use* companions after that: [docs/agent-guide.md](docs/agent-guide.md).
+The agent should interview you briefly (review / security / fix / advise, who runs the CLI, timeouts), then brew or source install, skill, doctor, and a first spawn matched to your answers. Day-to-day CLI use after that: [docs/agent-guide.md](docs/agent-guide.md).
 
 ## Why use this
 
