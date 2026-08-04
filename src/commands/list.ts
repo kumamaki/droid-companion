@@ -1,5 +1,11 @@
 import { effectiveStaleAfter, loadConfig } from "../lib/config";
-import { homePath, humanDuration, paint, useHumanUi } from "../lib/human";
+import {
+  colorEnabled,
+  homePath,
+  humanDuration,
+  paint,
+  useHumanUi,
+} from "../lib/human";
 import { findRunningJobForName, reconcileJob } from "../lib/jobs";
 import {
   buildRosterEntry,
@@ -34,33 +40,43 @@ function truncateRole(role: string | null): string | null {
   return firstLine.length > 40 ? `${firstLine.slice(0, 39)}…` : firstLine;
 }
 
-function rosterLine(entry: RosterEntry, nameWidth: number): string {
-  const name = paint("bold", entry.name.padEnd(nameWidth));
+function rosterLine(
+  entry: RosterEntry,
+  nameWidth: number,
+  color: boolean,
+): string {
+  const name = paint("bold", entry.name.padEnd(nameWidth), color);
   const identity = entry.persona ?? truncateRole(entry.role) ?? "custom";
   const shape = [entry.toolProfile, entry.format].filter(Boolean).join("/");
   const identityCell = paint(
     "dim",
     `${identity}${shape ? ` · ${shape}` : ""}${entry.auto ? ` · auto ${entry.auto}` : ""}`,
+    color,
   );
   const jobCell =
     entry.job === "running"
       ? paint(
           "yellow",
           `running ${entry.jobId ? entry.jobId.slice(0, 8) : ""}`.trim(),
+          color,
         )
-      : paint("dim", "idle");
+      : paint("dim", "idle", color);
   const trailing = [`last ${humanDuration(entry.idleForMs)}`];
   if (entry.cwd) trailing.push(homePath(entry.cwd));
-  const trailingCell = paint("dim", trailing.join(" · "));
-  const staleCell = entry.stale ? ` ${paint("red", "stale")}` : "";
+  const trailingCell = paint("dim", trailing.join(" · "), color);
+  const staleCell = entry.stale ? ` ${paint("red", "stale", color)}` : "";
   return `${name}  ${identityCell}  ${jobCell}  ${trailingCell}${staleCell}`;
 }
 
-/** Human roster rendering as a pure function so tests can run without a TTY. */
+/**
+ * Human roster rendering as a pure function.
+ * Pass `color: false` in tests so host TTY cannot inject ANSI.
+ */
 export function renderRosterHuman(
   roster: RosterEntry[],
-  opts: { olderThanMs: number; prunedNames?: string[] },
+  opts: { olderThanMs: number; prunedNames?: string[]; color?: boolean },
 ): string[] {
+  const color = opts.color ?? colorEnabled();
   const lines: string[] = [];
   if (opts.prunedNames && opts.prunedNames.length > 0) {
     lines.push(
@@ -74,6 +90,7 @@ export function renderRosterHuman(
       paint(
         "dim",
         "Spawn one: droid-companion spawn --name smoke --persona advisor",
+        color,
       ),
     );
     return lines;
@@ -83,12 +100,13 @@ export function renderRosterHuman(
     paint(
       "cyan",
       `${roster.length} companion${plural} · stale after ${humanDuration(opts.olderThanMs)}`,
+      color,
     ),
   );
   lines.push("");
   const nameWidth = Math.max(...roster.map((entry) => entry.name.length));
   for (const entry of roster) {
-    lines.push(`  ${rosterLine(entry, nameWidth)}`);
+    lines.push(`  ${rosterLine(entry, nameWidth, color)}`);
   }
   return lines;
 }

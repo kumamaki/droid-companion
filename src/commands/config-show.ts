@@ -1,5 +1,5 @@
 import { loadConfig, type CompanionConfig } from "../lib/config";
-import { homePath, paint, useHumanUi } from "../lib/human";
+import { colorEnabled, homePath, paint, useHumanUi } from "../lib/human";
 import {
   PACKAGE_NAME,
   VERSION,
@@ -21,33 +21,38 @@ function output(obj: unknown): void {
   console.log(JSON.stringify(obj, null, 2));
 }
 
-function personaLine(persona: PersonaPackage): string {
+function personaLine(persona: PersonaPackage, color: boolean): string {
   const traits: string[] = [persona.toolProfile, persona.format];
   if (persona.auto) traits.push(`auto ${persona.auto}`);
-  return `${paint("bold", persona.name.padEnd(9))}${paint("dim", traits.join(" · "))}`;
+  return `${paint("bold", persona.name.padEnd(9), color)}${paint("dim", traits.join(" · "), color)}`;
 }
 
-/** Human rendering as a pure function so tests can assert lines without a TTY. */
+/**
+ * Human rendering as a pure function.
+ * Pass `color: false` in tests so host TTY cannot inject ANSI.
+ */
 export function renderConfigHuman(
   config: CompanionConfig,
   flavor: string,
+  opts: { color?: boolean } = {},
 ): string[] {
+  const color = opts.color ?? colorEnabled();
   const lines: string[] = [];
   lines.push(`${PACKAGE_NAME} ${VERSION} · ${flavor}`);
   lines.push("");
 
-  lines.push(paint("cyan", "Files"));
+  lines.push(paint("cyan", "Files", color));
   const configLabel = config.path ? homePath(config.path) : "(unknown path)";
   const configNote = config.created
     ? " (created with starter defaults)"
     : config.exists
       ? ""
       : " (missing — using built-ins)";
-  lines.push(`  config   ${paint("dim", configLabel + configNote)}`);
-  lines.push(`  state    ${paint("dim", homePath(stateDir()))}`);
+  lines.push(`  config   ${paint("dim", configLabel + configNote, color)}`);
+  lines.push(`  state    ${paint("dim", homePath(stateDir()), color)}`);
   lines.push("");
 
-  lines.push(paint("cyan", "Defaults"));
+  lines.push(paint("cyan", "Defaults", color));
   lines.push(`  stale_after            ${config.staleAfter}`);
   lines.push(`  max_positional_chars   ${config.maxPositionalChars}`);
   for (const [key, value] of Object.entries(config.defaults)) {
@@ -56,20 +61,20 @@ export function renderConfigHuman(
   }
   lines.push("");
 
-  lines.push(paint("cyan", "Personas"));
+  lines.push(paint("cyan", "Personas", color));
   const names = Object.keys(config.personas);
   if (names.length === 0) {
-    lines.push(paint("dim", "  none — add [personas.NAME] to config.toml"));
+    lines.push(paint("dim", "  none — add [personas.NAME] to config.toml", color));
   } else {
     for (const name of names) {
-      lines.push(`  ${personaLine(config.personas[name])}`);
+      lines.push(`  ${personaLine(config.personas[name], color)}`);
     }
   }
   lines.push("");
 
-  lines.push(paint("cyan", "Built-in personas"));
+  lines.push(paint("cyan", "Built-in personas", color));
   for (const persona of listBuiltinPersonas()) {
-    lines.push(`  ${personaLine(persona)}`);
+    lines.push(`  ${personaLine(persona, color)}`);
   }
   return lines;
 }

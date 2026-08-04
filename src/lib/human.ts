@@ -2,18 +2,43 @@
 
 import { homedir } from "os";
 
-export function isTty(): boolean {
-  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+/** Optional stream probe so tests never couple to the host TTY. */
+export type TtyProbe = {
+  stdinIsTty?: boolean;
+  stdoutIsTty?: boolean;
+};
+
+/**
+ * Color decision inputs. Omit fields to read the live process.
+ * Pass every field in tests so host env/TTY cannot flake ship.
+ */
+export type ColorProbe = {
+  /** When true, color is off (NO_COLOR present). */
+  noColorSet?: boolean;
+  term?: string | undefined;
+  stdoutIsTty?: boolean;
+};
+
+export function isTty(probe?: TtyProbe): boolean {
+  const stdinIsTty = probe?.stdinIsTty ?? Boolean(process.stdin.isTTY);
+  const stdoutIsTty = probe?.stdoutIsTty ?? Boolean(process.stdout.isTTY);
+  return stdinIsTty && stdoutIsTty;
 }
 
 /**
  * Human mode: TTY by default, or --text.
  * Machine mode: --json, or non-TTY without --text.
+ * `tty` overrides live detection (tests inject both branches).
  */
-export function useHumanUi(opts: { json?: boolean; text?: boolean }): boolean {
+export function useHumanUi(opts: {
+  json?: boolean;
+  text?: boolean;
+  /** Override isTty(); omit to probe process streams. */
+  tty?: boolean;
+}): boolean {
   if (opts.json) return false;
   if (opts.text) return true;
-  return isTty();
+  return opts.tty ?? isTty();
 }
 
 /** Collapse $HOME to ~ for human display. */
@@ -50,13 +75,26 @@ export type Tone = keyof typeof CODES;
  * Colors only on a real terminal. NO_COLOR (any value) and TERM=dumb win;
  * piped/--text output stays clean so redirecting never captures escapes.
  */
-export function colorEnabled(): boolean {
-  if (process.env.NO_COLOR !== undefined) return false;
-  if (process.env.TERM === "dumb") return false;
-  return Boolean(process.stdout.isTTY);
+export function colorEnabled(probe?: ColorProbe): boolean {
+  const noColorSet =
+    probe?.noColorSet ?? process.env.NO_COLOR !== undefined;
+  if (noColorSet) return false;
+  const term = probe && "term" in probe ? probe.term : process.env.TERM;
+  if (term === "dumb") return false;
+  const stdoutIsTty = probe?.stdoutIsTty ?? Boolean(process.stdout.isTTY);
+  return stdoutIsTty;
 }
 
-export function paint(tone: Tone, text: string): string {
-  if (!colorEnabled()) return text;
+/**
+ * Paint with live color policy, or an explicit boolean / probe.
+ * Render helpers pass a boolean so tests can force monochrome lines.
+ */
+export function paint(
+  tone: Tone,
+  text: string,
+  color: boolean | ColorProbe = colorEnabled(),
+): string {
+  const on = typeof color === "boolean" ? color : colorEnabled(color);
+  if (!on) return text;
   return `${CODES[tone]}${text}${CODES.reset}`;
 }
